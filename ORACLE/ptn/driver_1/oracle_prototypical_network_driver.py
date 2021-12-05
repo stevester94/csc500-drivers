@@ -2,19 +2,16 @@
 
 import numpy as np
 import os, json, sys, time
-from numpy.core.fromnumeric import reshape
 
 from torch.optim import Adam
 import torch
 
 from steves_utils.torch_sequential_builder import build_sequential
-from steves_utils.dummy_cida_dataset import Dummy_CIDA_Dataset
-from steves_utils.lazy_map import Lazy_Map
 
-from steves_utils.fsl_utils import split_ds_into_episodes
+
 from steves_models.steves_ptn import Steves_Prototypical_Network
 
-import steves_utils.ORACLE.torch as ORACLE_Torch
+from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
 from steves_utils.ORACLE.utils_v2 import (
     ALL_DISTANCES_FEET,
     ALL_SERIAL_NUMBERS,
@@ -149,47 +146,6 @@ x_net           = build_sequential(parameters["x_net"])
 ###################################
 # Build the dataset
 ###################################
-def build_ORACLE_episodic_iterable(
-    desired_serial_numbers,
-    desired_distances,
-    desired_runs,
-    window_length,
-    window_stride,
-    num_examples_per_device,
-    seed,
-    max_cache_size,
-    n_shot,
-    n_query,
-    n_train_tasks,
-    n_val_tasks,
-    n_test_tasks,
-):
-
-    ds = ORACLE_Torch.ORACLE_Torch_Dataset(
-                    desired_serial_numbers=desired_serial_numbers,
-                    desired_distances=desired_distances,
-                    desired_runs=desired_runs,
-                    window_length=window_length,
-                    window_stride=window_stride,
-                    num_examples_per_device=num_examples_per_device,
-                    seed=seed,  
-                    max_cache_size=max_cache_size,
-                    # transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
-                    transform_func=lambda x: (torch.from_numpy(x["iq"]), serial_number_to_id(x["serial_number"]), ), # Just (x,y)
-                    prime_cache=False
-    )
-
-    return split_ds_into_episodes(
-        ds=ds,
-        n_way=len(desired_serial_numbers),
-        n_shot=n_shot,
-        n_query=n_query,
-        n_train_tasks=n_train_tasks,
-        n_val_tasks=n_val_tasks,
-        n_test_tasks=n_test_tasks,
-        seed=seed,
-    )
-
 
 train_dl, val_dl, test_dl = build_ORACLE_episodic_iterable(
     desired_serial_numbers=desired_serial_numbers,
