@@ -10,7 +10,7 @@ from steves_utils.torch_sequential_builder import build_sequential
 
 
 from steves_models.steves_ptn import Steves_Prototypical_Network
-
+from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
 from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
 from steves_utils.ORACLE.utils_v2 import (
     ALL_DISTANCES_FEET,
@@ -72,24 +72,22 @@ elif len(sys.argv) == 1:
 
     base_parameters["n_epoch"] = 5
 
-    base_parameters["x_net"] = [# droupout, groups, 512 out
-        # {"class": "Conv1d", "kargs": { "in_channels":2, "out_channels":50, "kernel_size":7, "stride":1, "padding":0, "groups":2 },},
-        {"class": "Conv1d", "kargs": { "in_channels":2, "out_channels":50, "kernel_size":7, "stride":1, "padding":0, },},
+    base_parameters["x_net"] =     [# droupout, groups, 512 out
+        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
+        {"class": "Conv2d", "kargs": { "in_channels":1, "out_channels":256, "kernel_size":(1,7), "bias":False, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Conv1d", "kargs": { "in_channels":50, "out_channels":50, "kernel_size":7, "stride":1, "padding":0 },},
+        {"class": "BatchNorm2d", "kargs": {"num_features":256}},
+
+        {"class": "Conv2d", "kargs": { "in_channels":256, "out_channels":80, "kernel_size":(2,7), "bias":True, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
+        {"class": "BatchNorm2d", "kargs": {"num_features":80}},
         {"class": "Flatten", "kargs": {}},
 
-        {"class": "Linear", "kargs": {"in_features": 5800, "out_features": 512}},
+        {"class": "Linear", "kargs": {"in_features": 80*128, "out_features": 256}}, # 80 units per IQ pair
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
+        {"class": "BatchNorm1d", "kargs": {"num_features":256}},
 
-        {"class": "Linear", "kargs": {"in_features": 512, "out_features": 512}},
-        {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
-
-        {"class": "Linear", "kargs": {"in_features": 512, "out_features": 512}},
+        {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
     ]
 
 
@@ -157,12 +155,18 @@ train_dl, val_dl, test_dl = build_ORACLE_episodic_iterable(
     num_examples_per_device=num_examples_per_device,
     seed=seed,
     max_cache_size=MAX_CACHE_SIZE,
+    n_way=len(desired_serial_numbers),
     n_shot=n_shot,
     n_query=n_query,
-    n_train_tasks=n_train_tasks,
-    n_val_tasks=n_val_tasks,
-    n_test_tasks=n_test_tasks,
+    n_train_tasks_per_distance=n_train_tasks,
+    n_val_tasks_per_distance=n_val_tasks,
+    n_test_tasks_per_distance=n_test_tasks,
 )
+
+lam = lambda k: k[1]
+train_dl = Lazy_Iterable_Wrapper(train_dl , lam)
+val_dl = Lazy_Iterable_Wrapper(val_dl , lam)
+test_dl = Lazy_Iterable_Wrapper(test_dl , lam)
 
 ###################################
 # Build the model
