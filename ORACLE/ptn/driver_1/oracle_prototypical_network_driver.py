@@ -13,7 +13,7 @@ from steves_models.steves_ptn import Steves_Prototypical_Network
 from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
 from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
 
-from steves_utils.lazy_map import Lazy_Map
+from steves_utils.torch_utils import confusion_by_domain_over_dataloader
 
 from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
 from steves_utils.ORACLE.utils_v2 import (
@@ -61,22 +61,32 @@ elif len(sys.argv) == 1:
         "3123D79",
         "3123D80",
     ]
-    base_parameters["source_domains"] = [2]
-    base_parameters["target_domains"] = [8]
+    base_parameters["source_domains"] = [38]
+    base_parameters["target_domains"] = [ 2,
+        8,
+        14,
+        20,
+        26,
+        32,
+        44,
+        50,
+        56,
+        62
+    ]
 
     base_parameters["window_stride"]=50
     base_parameters["window_length"]=256
     base_parameters["desired_runs"]=[1]
-    base_parameters["num_examples_per_device"]=7500
+    base_parameters["num_examples_per_device"]=75000
 
     # base_parameters["n_shot"]  = 
     base_parameters["n_query"]  = 10
-    base_parameters["n_train_tasks"] = 500
-    base_parameters["n_val_tasks"]  = 100
+    base_parameters["n_train_tasks"] = 2000
+    base_parameters["n_val_tasks"]  = 1000
     base_parameters["n_test_tasks"]  = 100
     base_parameters["validation_frequency"] = 100
 
-    base_parameters["n_epoch"] = 3
+    base_parameters["n_epoch"] = 100
 
     base_parameters["x_net"] =     [# droupout, groups, 512 out
         {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
@@ -99,7 +109,7 @@ elif len(sys.argv) == 1:
 
     parameters = base_parameters
 
-    base_parameters["patience"] = 2
+    base_parameters["patience"] = 10
 
 
 experiment_name         = parameters["experiment_name"]
@@ -118,7 +128,8 @@ window_length           = parameters["window_length"]
 desired_runs            = parameters["desired_runs"]
 num_examples_per_device = parameters["num_examples_per_device"]
 
-n_shot        = len(desired_serial_numbers)
+# n_shot        = len(desired_serial_numbers)
+n_shot        = 10
 n_query       = parameters["n_query"]
 n_train_tasks = parameters["n_train_tasks"]
 n_val_tasks   = parameters["n_val_tasks"]
@@ -214,6 +225,14 @@ optimizer = Adam(params=model.parameters(), lr=lr)
 # train
 ###################################
 jig = PTN_Train_Eval_Test_Jig(model, "/tmp/best_model", device)
+
+print("source acc {}, source loss {}".format(*jig.test(source_test_dl)))
+print("target acc {}, target loss {}".format(*jig.test(target_test_dl)))
+
+sys.exit(1)
+
+
+
 jig.train(
     train_iterable=source_train_dl,
     source_val_iterable=source_val_dl,
