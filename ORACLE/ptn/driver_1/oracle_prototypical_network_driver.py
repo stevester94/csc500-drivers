@@ -11,9 +11,11 @@ from steves_utils.torch_sequential_builder import build_sequential
 
 from steves_models.steves_ptn import Steves_Prototypical_Network
 from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
+from steves_utils.iterable_aggregator import Iterable_Aggregator
 from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
 
-from steves_utils.torch_utils import confusion_by_domain_over_dataloader
+from steves_utils.torch_utils import ptn_confusion_by_domain_over_dataloader
+from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
 
 from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
 from steves_utils.ORACLE.utils_v2 import (
@@ -38,6 +40,8 @@ if not os.path.exists(RESULTS_DIR):
     os.mkdir(RESULTS_DIR)
 EXPERIMENT_JSON_PATH = os.path.join(RESULTS_DIR, "experiment.json")
 LOSS_CURVE_PATH = os.path.join(RESULTS_DIR, "loss.png")
+BEST_MODEL_PATH = os.path.join(RESULTS_DIR, "best_model.pth")
+
 
 
 ###################################
@@ -47,28 +51,26 @@ if len(sys.argv) > 1 and sys.argv[1] == "-":
     parameters = json.loads(sys.stdin.read())
 elif len(sys.argv) == 1:
     base_parameters = {}
-    base_parameters["experiment_name"] = "One Distance ORACLE CNN"
+    base_parameters["experiment_name"] = "One Distance ORACLE PTN"
     base_parameters["lr"] = 0.001
-    # base_parameters["n_epoch"] = 10
-    # base_parameters["batch_size"] = 256
-    # base_parameters["patience"] = 10
     base_parameters["device"] = "cuda"
+    base_parameters["max_cache_items"] = 4.5e6
 
     base_parameters["seed"] = 1337
-    base_parameters["desired_serial_numbers"] = [
-        "3123D52",
-        "3123D65",
-        "3123D79",
-        "3123D80",
-    ]
-    base_parameters["source_domains"] = [38]
-    base_parameters["target_domains"] = [ 2,
+    base_parameters["desired_serial_numbers"] = ALL_SERIAL_NUMBERS
+    # base_parameters["desired_serial_numbers"] = [
+    #     "3123D52",
+    #     "3123D65",
+    #     "3123D79",
+    #     "3123D80",
+    # ]
+    base_parameters["source_domains"] = [38,]
+    base_parameters["target_domains"] = [20,44,
+        2,
         8,
         14,
-        20,
         26,
         32,
-        44,
         50,
         56,
         62
@@ -78,15 +80,18 @@ elif len(sys.argv) == 1:
     base_parameters["window_length"]=256
     base_parameters["desired_runs"]=[1]
     base_parameters["num_examples_per_device"]=75000
+    base_parameters["num_examples_per_device"]=7500
 
-    # base_parameters["n_shot"]  = 
-    base_parameters["n_query"]  = 10
+    base_parameters["n_shot"] = 3
+    base_parameters["n_way"]  = len(base_parameters["desired_serial_numbers"])
+    base_parameters["n_query"]  = 2
     base_parameters["n_train_tasks"] = 2000
-    base_parameters["n_val_tasks"]  = 1000
+    base_parameters["n_train_tasks"] = 100
+    base_parameters["n_val_tasks"]  = 100
     base_parameters["n_test_tasks"]  = 100
-    base_parameters["validation_frequency"] = 100
 
     base_parameters["n_epoch"] = 100
+    base_parameters["n_epoch"] = 3
 
     base_parameters["x_net"] =     [# droupout, groups, 512 out
         {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
@@ -114,11 +119,9 @@ elif len(sys.argv) == 1:
 
 experiment_name         = parameters["experiment_name"]
 lr                      = parameters["lr"]
-# n_epoch                 = parameters["n_epoch"]
-# batch_size              = parameters["batch_size"]
-# patience                = parameters["patience"]
 seed                    = parameters["seed"]
 device                  = torch.device(parameters["device"])
+max_cache_items         = parameters["max_cache_items"]
 
 desired_serial_numbers  = parameters["desired_serial_numbers"]
 source_domains         = parameters["source_domains"]
@@ -128,18 +131,33 @@ window_length           = parameters["window_length"]
 desired_runs            = parameters["desired_runs"]
 num_examples_per_device = parameters["num_examples_per_device"]
 
-# n_shot        = len(desired_serial_numbers)
-n_shot        = 10
+n_way         = parameters["n_way"]
+n_shot        = parameters["n_shot"]
 n_query       = parameters["n_query"]
 n_train_tasks = parameters["n_train_tasks"]
 n_val_tasks   = parameters["n_val_tasks"]
 n_test_tasks  = parameters["n_test_tasks"]
 
-validation_frequency = parameters["validation_frequency"]
 n_epoch = parameters["n_epoch"]
 patience = parameters["patience"]
 
+
+
+n_train_tasks_per_distance_source=int(n_train_tasks/len(source_domains))
+n_val_tasks_per_distance_source=int(n_val_tasks/len(source_domains))
+n_test_tasks_per_distance_source=int(n_test_tasks/len(source_domains))
+max_cache_size_per_distance_source=int(max_cache_items/2/len(source_domains))
+num_examples_per_device_per_distance_source=int(num_examples_per_device/len(source_domains))
+
+n_train_tasks_per_distance_target=int(n_train_tasks/len(target_domains))
+n_val_tasks_per_distance_target=int(n_val_tasks/len(target_domains))
+n_test_tasks_per_distance_target=int(n_test_tasks/len(target_domains))
+max_cache_size_per_distance_target=int(max_cache_items/2/len(target_domains))
+num_examples_per_device_per_distance_target=int(num_examples_per_device/len(target_domains))
+
 start_time_secs = time.time()
+
+
 
 
 ###################################
@@ -164,54 +182,51 @@ x_net           = build_sequential(parameters["x_net"])
 # Build the dataset
 ###################################
 
-source_train_dl, source_val_dl, source_test_dl = build_ORACLE_episodic_iterable(
+og_source_train_dl, og_source_val_dl, og_source_test_dl = build_ORACLE_episodic_iterable(
     desired_serial_numbers=desired_serial_numbers,
-    # desired_distances=[50,32,8],
     desired_distances=source_domains,
     desired_runs=desired_runs,
     window_length=window_length,
     window_stride=window_stride,
-    num_examples_per_device=num_examples_per_device,
+    num_examples_per_device_per_distance=num_examples_per_device_per_distance_source,
     seed=seed,
-    max_cache_size=MAX_CACHE_SIZE,
-    n_way=len(desired_serial_numbers),
+    max_cache_size_per_distance=max_cache_size_per_distance_source,
+    n_way=n_way,
     n_shot=n_shot,
     n_query=n_query,
-    n_train_tasks_per_distance=n_train_tasks,
-    n_val_tasks_per_distance=n_val_tasks,
-    n_test_tasks_per_distance=n_test_tasks,
+    n_train_tasks_per_distance=n_train_tasks_per_distance_source,
+    n_val_tasks_per_distance=n_val_tasks_per_distance_source,
+    n_test_tasks_per_distance=n_test_tasks_per_distance_source,
 )
 
-target_train_dl, target_val_dl, target_test_dl = build_ORACLE_episodic_iterable(
+og_target_train_dl, og_target_val_dl, og_target_test_dl = build_ORACLE_episodic_iterable(
     desired_serial_numbers=desired_serial_numbers,
-    # desired_distances=[50,32,8],
     desired_distances=target_domains,
     desired_runs=desired_runs,
     window_length=window_length,
     window_stride=window_stride,
-    num_examples_per_device=num_examples_per_device,
+    num_examples_per_device_per_distance=num_examples_per_device_per_distance_target,
     seed=seed,
-    max_cache_size=MAX_CACHE_SIZE,
-    n_way=len(desired_serial_numbers),
+    max_cache_size_per_distance=max_cache_size_per_distance_target,
+    n_way=n_way,
     n_shot=n_shot,
     n_query=n_query,
-    n_train_tasks_per_distance=n_train_tasks,
-    n_val_tasks_per_distance=n_val_tasks,
-    n_test_tasks_per_distance=n_test_tasks,
+    n_train_tasks_per_distance=n_train_tasks_per_distance_target,
+    n_val_tasks_per_distance=n_val_tasks_per_distance_target,
+    n_test_tasks_per_distance=n_test_tasks_per_distance_target,
 )
 
 # For CNN We only use X and Y. And we only train on the source.
-# Properly form the data using a transform lambda and Lazy_Map. Finally wrap them in a dataloader
+# Properly form the data using a transform lambda and Lazy_Iterable_Wrapper. Finally wrap them in a dataloader
 
 transform_lambda = lambda ex: ex[1] # Original is (<domain>, <episode>) so we strip down to episode only
 
-source_train_dl = Lazy_Iterable_Wrapper(source_train_dl, transform_lambda)
-source_val_dl = Lazy_Iterable_Wrapper(source_val_dl, transform_lambda)
-source_test_dl = Lazy_Iterable_Wrapper(source_test_dl, transform_lambda)
-target_train_dl = Lazy_Iterable_Wrapper(target_train_dl, transform_lambda)
-target_val_dl = Lazy_Iterable_Wrapper(target_val_dl, transform_lambda)
-target_test_dl = Lazy_Iterable_Wrapper(target_test_dl, transform_lambda)
-
+source_train_dl = Lazy_Iterable_Wrapper(og_source_train_dl, transform_lambda)
+source_val_dl = Lazy_Iterable_Wrapper(og_source_val_dl, transform_lambda)
+source_test_dl = Lazy_Iterable_Wrapper(og_source_test_dl, transform_lambda)
+target_train_dl = Lazy_Iterable_Wrapper(og_target_train_dl, transform_lambda)
+target_val_dl = Lazy_Iterable_Wrapper(og_target_val_dl, transform_lambda)
+target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 
 
 ###################################
@@ -224,14 +239,7 @@ optimizer = Adam(params=model.parameters(), lr=lr)
 ###################################
 # train
 ###################################
-jig = PTN_Train_Eval_Test_Jig(model, "/tmp/best_model", device)
-
-print("source acc {}, source loss {}".format(*jig.test(source_test_dl)))
-print("target acc {}, target loss {}".format(*jig.test(target_test_dl)))
-
-sys.exit(1)
-
-
+jig = PTN_Train_Eval_Test_Jig(model, BEST_MODEL_PATH, device)
 
 jig.train(
     train_iterable=source_train_dl,
@@ -243,38 +251,13 @@ jig.train(
     optimizer=optimizer
 )
 
-# train_loss_history = []
-# val_loss_history   = []
-
-# best_val_avg_loss = float("inf")
-# best_model_state = model.state_dict()
-# best_epoch_index = 0
-
-# for epoch in range(n_epoch):
-#     train_avg_loss = model.fit(source_train_dl, optimizer, log_frequency=100)
-#     val_acc, val_avg_loss = model.validate(source_val_dl)
-
-    
-#     train_loss_history.append(train_avg_loss)
-#     val_loss_history.append(val_avg_loss)
-
-#     print(f"Val Accuracy: {(100 * val_acc):.2f}%, Val Avg Loss: {val_avg_loss:.2f}")
-#     # If this was the best validation performance, we save the model state
-#     if val_avg_loss < best_val_avg_loss:
-#         print("Best so far")
-#         best_model_state = model.state_dict()
-#         best_val_avg_loss = val_avg_loss
-#         best_epoch_index = epoch
-#     elif epoch - best_epoch_index == patience:
-#         print("Patience Exhausted")
-#         break
-
-# sys.exit(1)
+# model.load_state_dict(torch.load(BEST_MODEL_PATH))
 
 
 ###################################
 # Evaluate the model
 ###################################
+
 source_test_label_accuracy, source_test_label_loss = jig.test(source_test_dl)
 target_test_label_accuracy, target_test_label_loss = jig.test(target_test_dl)
 
@@ -285,9 +268,9 @@ history = jig.get_history()
 
 total_epochs_trained = len(history["epoch_indices"])
 
-val_dl = wrap_in_dataloader(Sequence_Aggregator((source_val_ds, target_val_ds)))
+val_dl = Iterable_Aggregator((og_source_val_dl,og_target_val_dl))
 
-confusion = confusion_by_domain_over_dataloader(model, device, val_dl, forward_uses_domain=False)
+confusion = ptn_confusion_by_domain_over_dataloader(model, device, val_dl)
 per_domain_accuracy = per_domain_accuracy_from_confusion(confusion)
 
 # Add a key to per_domain_accuracy for if it was a source domain
@@ -323,7 +306,7 @@ experiment = {
     "history": history,
 }
 
-
+# print(experiment)
 
 print("Source Test Label Accuracy:", source_test_label_accuracy, "Target Test Label Accuracy:", target_test_label_accuracy)
 print("Source Val Label Accuracy:", source_val_label_accuracy, "Target Val Label Accuracy:", target_val_label_accuracy)

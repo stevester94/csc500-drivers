@@ -3,18 +3,17 @@
 import matplotlib.pyplot as plt
 import matplotlib.gridspec
 import json
-from steves_utils.vanilla_train_eval_test_jig import Vanilla_Train_Eval_Test_Jig
+from steves_utils.ptn_train_eval_test_jig import PTN_Train_Eval_Test_Jig
 import pandas as pds
 import matplotlib.patches as mpatches
 
-from steves_utils.utils_v2 import do_graph
 
 def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
     with open(experiment_json_path) as f:
         experiment = json.load(f)
 
-    fig, axes = plt.subplots(1, 1)
+    fig, axes = plt.subplots(2, 2)
     plt.tight_layout()
 
     fig.suptitle("Experiment Summary")
@@ -26,28 +25,101 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     ###
     # Get Loss Curve
     ###
-    graphs = [
-            {
-            "x": range(len(experiment["train_loss_history"])),
-            "y": experiment["train_loss_history"],
-            "x_label": None,
-            "y_label": "Train Label Loss",
-            "x_units": "Epoch",
-            "y_units": None,
-            }, 
-            {
-            "x": range(len(experiment["train_loss_history"])),
-            "y": experiment["val_loss_history"],
-            "x_label": None,
-            "y_label": "Val Label Loss",
-            "x_units": "Epoch",
-            "y_units": None,
-            }, 
-    ]
-    do_graph(axes, "Source Train Label Loss vs Source Val Label Loss", graphs)
-    # Vanilla_Train_Eval_Test_Jig.do_diagram(experiment["history"], axes[0][0])
+    PTN_Train_Eval_Test_Jig.do_diagram(experiment["history"], axes[0][0])
+
+    ###
+    # Get Results Table
+    ###
+    ax = axes[0][1]
+    ax.set_axis_off() 
+    ax.set_title("Results")
+    t = ax.table(
+        [
+            ["Source Val Label Accuracy", "{:.2f}".format(experiment["results"]["source_val_label_accuracy"])],
+            ["Source Val Label Loss", "{:.2f}".format(experiment["results"]["source_val_label_loss"])],
+            ["Target Val Label Accuracy", "{:.2f}".format(experiment["results"]["target_val_label_accuracy"])],
+            ["Target Val Label Loss", "{:.2f}".format(experiment["results"]["target_val_label_loss"])],
+
+            ["Source Test Label Accuracy", "{:.2f}".format(experiment["results"]["source_test_label_accuracy"])],
+            ["Source Test Label Loss", "{:.2f}".format(experiment["results"]["source_test_label_loss"])],
+            ["Target Test Label Accuracy", "{:.2f}".format(experiment["results"]["target_test_label_accuracy"])],
+            ["Target Test Label Loss", "{:.2f}".format(experiment["results"]["target_test_label_loss"])],
+            ["Total Epochs Trained", "{:.2f}".format(experiment["results"]["total_epochs_trained"])],
+            ["Total Experiment Time Secs", "{:.2f}".format(experiment["results"]["total_experiment_time_secs"])],
+        ],
+        loc="best",
+        cellLoc='left',
+        colWidths=[0.3,0.4],
+    )
+    t.auto_set_font_size(False)
+    t.set_fontsize(20)
+    t.scale(1.5, 2)
 
 
+    ###
+    # Get Parameters Table
+    ###
+    ax = axes[1][0]
+    ax.set_axis_off() 
+    ax.set_title("Parameters")
+
+    t = ax.table(
+        [
+            ["Experiment Name", experiment["parameters"]["experiment_name"]],
+            ["Learning Rate", experiment["parameters"]["lr"]],
+            ["Num Epochs", experiment["parameters"]["n_epoch"]],
+            ["patience", experiment["parameters"]["patience"]],
+            ["seed", experiment["parameters"]["seed"]],
+            ["device", experiment["parameters"]["device"]],
+            ["Source Domains", str(experiment["parameters"]["source_domains"])],
+            ["Target Domains", str(experiment["parameters"]["target_domains"])],
+
+            ["Window Stride", experiment["parameters"]["window_stride"]],
+            ["Num Floats per Window", experiment["parameters"]["window_length"]],
+            ["Runs", experiment["parameters"]["desired_runs"]],
+            ["Num examples per device", experiment["parameters"]["num_examples_per_device"]],
+            ["Num shot", experiment["parameters"]["n_shot"]],
+            ["Num way", experiment["parameters"]["n_way"]],
+            ["Num query", experiment["parameters"]["n_query"]],
+            ["Num train_tasks", experiment["parameters"]["n_train_tasks"]],
+            ["Num val_tasks", experiment["parameters"]["n_val_tasks"]],
+            ["Num test_tasks", experiment["parameters"]["n_test_tasks"]],
+            ["Num epoch", experiment["parameters"]["n_epoch"]],
+
+        ],
+        loc="best",
+        cellLoc='left',
+        colWidths=[0.3,0.45],
+    )
+    t.auto_set_font_size(False)
+    t.set_fontsize(20)
+    t.scale(1.5, 2)
+
+
+
+    #
+    # Build a damn pandas dataframe for the per domain accuracies and plot it
+    # 
+
+    ax = axes[1][1]
+    ax.set_title("Per Domain Validation Accuracy")
+
+    # Convert the dict to a list of tuples
+    per_domain_accuracy = experiment["results"]["per_domain_accuracy"]
+    per_domain_accuracy = [(domain, v["accuracy"], v["source?"]) for domain,v in per_domain_accuracy.items()]
+
+
+    df = pds.DataFrame(per_domain_accuracy, columns=["domain", "accuracy", "source?"])
+    df.domain = df.domain.astype(float)
+    df = df.set_index("domain")
+    df = df.sort_values("domain")
+
+    domain_colors = {True: 'r', False: 'b'}
+    df['accuracy'].plot(kind='bar', color=[domain_colors[i] for i in df['source?']], ax=ax)
+
+    source_patch = mpatches.Patch(color=domain_colors[True], label='Source Domain')
+    target_patch = mpatches.Patch(color=domain_colors[False], label='Target Domain')
+    ax.legend(handles=[source_patch, target_patch])
 
     if show_only:
         plt.show()
