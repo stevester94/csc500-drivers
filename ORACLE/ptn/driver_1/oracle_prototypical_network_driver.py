@@ -292,7 +292,7 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 
 
 # Iterate through the non-train dataloaders because APPARENTLY GOOGLE COLAB CANT HANG
-print("Priming the dataloaders...")
+print("Priming the dataloaders... Change 14:17, 12/12/2021")
 non_train_dl = [target_val_dl,target_test_dl, source_val_dl,source_test_dl,]
 print("Before Loop"); sys.stdout.flush()
 for idx, dl in enumerate(non_train_dl):
