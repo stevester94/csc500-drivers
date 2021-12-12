@@ -297,9 +297,13 @@ for idx, dl in enumerate(non_train_dl):
     count = 0
     for x in dl:
         count += 1
-        if count % int(total/10):
+        if count % int(total/10) == 0:
             print(f"{idx}/{len(non_train_dl)}: {count/total*100}%")
-print("Dont priming")
+            sys.stdout.flush()
+
+_ = next(iter(source_train_dl))
+_ = next(iter(target_train_dl))
+print("Done priming")
 
 ###################################
 # Build the model
