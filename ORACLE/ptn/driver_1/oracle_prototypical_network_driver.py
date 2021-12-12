@@ -291,7 +291,7 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 
 # Iterate through the non-train dataloaders because APPARENTLY GOOGLE COLAB CANT HANG
 print("Priming the dataloaders...")
-non_train_dl = [source_train_dl,source_val_dl,source_test_dl,target_train_dl,target_val_dl,target_test_dl]
+non_train_dl = [source_val_dl,source_test_dl,target_val_dl,target_test_dl]
 for idx, dl in enumerate(non_train_dl):
     total = len(dl)
     count = 0
