@@ -93,6 +93,9 @@ elif len(sys.argv) == 1:
     base_parameters["n_epoch"] = 100
     base_parameters["n_epoch"] = 3
 
+    base_parameters["patience"] = 10
+
+
     base_parameters["x_net"] =     [# droupout, groups, 512 out
         {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
         {"class": "Conv2d", "kargs": { "in_channels":1, "out_channels":256, "kernel_size":(1,7), "bias":False, "padding":(0,3), },},
@@ -114,33 +117,90 @@ elif len(sys.argv) == 1:
 
     parameters = base_parameters
 
-    base_parameters["patience"] = 10
 
-
+# Simple pass-through to the results json
 experiment_name         = parameters["experiment_name"]
+
+# Learning rate for Adam optimizer
 lr                      = parameters["lr"]
+
+# Sets seed for anything that uses a seed. Allows the experiment to be perfectly reproducible
 seed                    = parameters["seed"]
+
+# Which device we run on ['cpu', 'cuda']
+# Note for PTN this must be 'cuda'
 device                  = torch.device(parameters["device"])
+
+# The global max amount of items we can cache. The driver
+# will make the best use of this amount
 max_cache_items         = parameters["max_cache_items"]
 
+# Serial numbers in the dataset
 desired_serial_numbers  = parameters["desired_serial_numbers"]
+
+# Distances in the source domain
 source_domains         = parameters["source_domains"]
+
+# Distances in the target domain
 target_domains         = parameters["target_domains"]
+
+# The gap between each window from the original dataset
 window_stride           = parameters["window_stride"]
+
+# The total number of floats in each window. Each window is divided into I and Q channels,
+# so this must be an even number
 window_length           = parameters["window_length"]
+
+# Which runs to pull from the original dataset. The RF channel is different enough
+# between runs to impair accuracy
 desired_runs            = parameters["desired_runs"]
+
+# The total number of examples per device. Due to how PTN episodes are generated, 
+# this is distributed evenly between each domain (both in source and target)
+# For example if we have 1 source domain, 2 target domains, and specify 10k examples
+# per device, then each device in the single source domain gets 10k examples, but
+# each device in each target domain gets 5k examples
 num_examples_per_device = parameters["num_examples_per_device"]
 
+
+# The n_way of the episodes. Prior literature suggests keeping
+# this consistent between train and test. I suggest keeping this
+# == to the number of labels but that is not a hard and fast rule
 n_way         = parameters["n_way"]
+
+# The number of examples per class in the support set in each episode
 n_shot        = parameters["n_shot"]
+
+# The number of examples per class in the query set for each epsidode
 n_query       = parameters["n_query"]
+
+# The total number of train tasks in the source dataset. Much like num_examples_per_device
+# this will get distributed evenly between all of the source domains.
+# This is roughly equivalent to specifying the number of batches in the train dataset
 n_train_tasks = parameters["n_train_tasks"]
+
+# The total number of validation tasks in the source dataset AND target dataset RESPECTIVELY.
+# In other words, total_num_validation_tasks = 2*n_val_tasks
+# Gets distributed between all of the source and target domains
 n_val_tasks   = parameters["n_val_tasks"]
+
+# The total number of test tasks, behaves identical to n_val_tasks
 n_test_tasks  = parameters["n_test_tasks"]
 
+# The maximumum number of "epochs" to train. Note that an epoch is simply a full
+# iteration of the training dataset, it absolutely does not imply that we have iterated
+# over every training example available
 n_epoch = parameters["n_epoch"]
+
+# How many epochs to train before giving up due to no improvement in loss.
+# Note that patience for PTN considers source_val_loss + target_val_loss.
 patience = parameters["patience"]
 
+# A list of dictionaries representation of a sequential neural network.
+# The network gets instantiated by my custom 'build_sequential' function.
+# The args and class types are typically a straight pass through to the 
+# corresponding torch layers
+parameters["x_net"]
 
 
 n_train_tasks_per_distance_source=int(n_train_tasks/len(source_domains))
