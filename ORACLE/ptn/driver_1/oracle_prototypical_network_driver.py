@@ -6,6 +6,8 @@ import os, json, sys, time
 from torch.optim import Adam, optimizer
 import torch
 
+from tqdm import tqdm
+
 from steves_utils.torch_sequential_builder import build_sequential
 
 
@@ -295,15 +297,11 @@ non_train_dl = [target_val_dl,target_test_dl, source_val_dl,source_test_dl,]
 print("Before Loop"); sys.stdout.flush()
 for idx, dl in enumerate(non_train_dl):
     print(f"Begin {idx}"); sys.stdout.flush()
-    total = len(dl)
-    count = 0
-    for x in dl:
-        print(".", end=""); sys.stdout.flush()
-        count += 1
-        if count % int(total/10) == 0:
-            print("")
-            print(f"{idx}/{len(non_train_dl)}: {count/total*100}%")
-            sys.stdout.flush()
+    with tqdm(
+        enumerate(dl), total=len(dl), miniters=len(dl)/10
+    ) as t:
+        for _ in t:
+            pass
 
 _ = next(iter(source_train_dl))
 _ = next(iter(target_train_dl))
