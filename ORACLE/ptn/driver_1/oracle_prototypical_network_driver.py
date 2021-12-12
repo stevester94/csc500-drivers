@@ -292,12 +292,16 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 # Iterate through the non-train dataloaders because APPARENTLY GOOGLE COLAB CANT HANG
 print("Priming the dataloaders...")
 non_train_dl = [target_val_dl,target_test_dl, source_val_dl,source_test_dl,]
+print("Before Loop"); sys.stdout.flush()
 for idx, dl in enumerate(non_train_dl):
+    print(f"Begin {idx}"); sys.stdout.flush()
     total = len(dl)
     count = 0
     for x in dl:
+        print(".", end=""); sys.stdout.flush()
         count += 1
         if count % int(total/10) == 0:
+            print("")
             print(f"{idx}/{len(non_train_dl)}: {count/total*100}%")
             sys.stdout.flush()
 
