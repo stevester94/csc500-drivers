@@ -243,7 +243,7 @@ x_net           = build_sequential(parameters["x_net"])
 ###################################
 # Build the dataset
 ###################################
-
+print("Building dataset...")
 og_source_train_dl, og_source_val_dl, og_source_test_dl = build_ORACLE_episodic_iterable(
     desired_serial_numbers=desired_serial_numbers,
     desired_distances=source_domains,
@@ -290,22 +290,6 @@ target_train_dl = Lazy_Iterable_Wrapper(og_target_train_dl, transform_lambda)
 target_val_dl = Lazy_Iterable_Wrapper(og_target_val_dl, transform_lambda)
 target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 
-
-# Iterate through the non-train dataloaders because APPARENTLY GOOGLE COLAB CANT HANG
-print("Priming the dataloaders... Change 14:17, 12/12/2021")
-non_train_dl = [target_val_dl,target_test_dl, source_val_dl,source_test_dl,]
-print("Before Loop"); sys.stdout.flush()
-for idx, dl in enumerate(non_train_dl):
-    print(f"Begin {idx}"); sys.stdout.flush()
-    with tqdm(
-        enumerate(dl), total=len(dl), miniters=len(dl)/10
-    ) as t:
-        for _ in t:
-            pass
-
-_ = next(iter(source_train_dl))
-_ = next(iter(target_train_dl))
-print("Done priming")
 
 ###################################
 # Build the model
