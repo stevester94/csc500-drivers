@@ -45,7 +45,6 @@ NUM_LOGS_PER_EPOCH = 5
 if not os.path.exists(RESULTS_DIR):
     os.mkdir(RESULTS_DIR)
 
-MAX_CACHE_SIZE = 200000*len(ALL_SERIAL_NUMBERS)*1000
 
 
 ###################################
@@ -55,7 +54,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "-":
     parameters = json.loads(sys.stdin.read())
 elif len(sys.argv) == 1:
     base_parameters = {}
-    base_parameters["experiment_name"] = "One Distance ORACLE CNN"
+    base_parameters["experiment_name"] = "ORACLE CNN"
     base_parameters["lr"] = 0.0001
     base_parameters["n_epoch"] = 10
     base_parameters["batch_size"] = 256
@@ -69,27 +68,28 @@ elif len(sys.argv) == 1:
     base_parameters["window_stride"]=50
     base_parameters["window_length"]=256 #Will break if not 256 due to model hyperparameters
     base_parameters["desired_runs"]=[1]
-    base_parameters["num_examples_per_device"]=260000
+    base_parameters["num_examples_per_device"]=75000
+    base_parameters["max_cache_items"] = 4.5e6
+
     #base_parameters["num_examples_per_device"]=260
 
 
-    base_parameters["x_net"] = [
-        {"class": "Conv1d", "kargs": { "in_channels":2, "out_channels":50, "kernel_size":7, "stride":1, "padding":0, "groups":2 },},
+    base_parameters["x_net"] =     [# droupout, groups, 512 out
+        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
+        {"class": "Conv2d", "kargs": { "in_channels":1, "out_channels":256, "kernel_size":(1,7), "bias":False, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Conv1d", "kargs": { "in_channels":50, "out_channels":50, "kernel_size":7, "stride":1, "padding":0 },},
+        {"class": "BatchNorm2d", "kargs": {"num_features":256}},
+
+        {"class": "Conv2d", "kargs": { "in_channels":256, "out_channels":80, "kernel_size":(2,7), "bias":True, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
+        {"class": "BatchNorm2d", "kargs": {"num_features":80}},
         {"class": "Flatten", "kargs": {}},
 
-        {"class": "Linear", "kargs": {"in_features": 5800, "out_features": 256}},
+        {"class": "Linear", "kargs": {"in_features": 80*128, "out_features": 256}}, # 80 units per IQ pair
         {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
+        {"class": "BatchNorm1d", "kargs": {"num_features":256}},
 
-        {"class": "Linear", "kargs": {"in_features": 256, "out_features": 80}},
-        {"class": "ReLU", "kargs": {"inplace": True}},
-        {"class": "Dropout", "kargs": {"p": 0.5}},
-
-        {"class": "Linear", "kargs": {"in_features": 80, "out_features": 16}},
+        {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
     ]
 
     parameters = base_parameters
@@ -104,12 +104,13 @@ seed                    = parameters["seed"]
 device                  = torch.device(parameters["device"])
 
 desired_serial_numbers  = parameters["desired_serial_numbers"]
-source_domains         = parameters["source_domains"]
-target_domains         = parameters["target_domains"]
+source_domains          = parameters["source_domains"]
+target_domains          = parameters["target_domains"]
 window_stride           = parameters["window_stride"]
 window_length           = parameters["window_length"]
 desired_runs            = parameters["desired_runs"]
 num_examples_per_device = parameters["num_examples_per_device"]
+max_cache_items         = int(parameters["max_cache_items"])
 
 start_time_secs = time.time()
 
@@ -134,7 +135,7 @@ x_net           = build_sequential(parameters["x_net"])
 ###################################
 # Build the dataset
 ###################################
-
+print("Building source dataset")
 source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_serial_numbers=desired_serial_numbers,
                 desired_distances=source_domains,
@@ -143,10 +144,12 @@ source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 window_stride=window_stride,
                 num_examples_per_device=num_examples_per_device,
                 seed=seed,  
-                max_cache_size=MAX_CACHE_SIZE,
+                max_cache_size=max_cache_items,
                 transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
-                prime_cache=True
+                prime_cache=False
 )
+
+print("Build target dataset")
 
 target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_serial_numbers=desired_serial_numbers,
@@ -156,11 +159,10 @@ target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 window_stride=window_stride,
                 num_examples_per_device=num_examples_per_device,
                 seed=seed,  
-                max_cache_size=MAX_CACHE_SIZE,
-                transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"])
+                max_cache_size=max_cache_items,
+                transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
+                prime_cache=False
 )
-
-
 
 
 def wrap_in_dataloader(ds):
@@ -234,7 +236,8 @@ jig = Vanilla_Train_Eval_Test_Jig(
 
 jig.train(
     train_iterable=train_dl,
-    val_iterable=source_val_dl,
+    source_val_iterable=source_val_dl,
+    target_val_iterable=target_val_dl,
     patience=patience,
     num_epochs=n_epoch,
     num_logs_per_epoch=NUM_LOGS_PER_EPOCH,

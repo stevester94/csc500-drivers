@@ -108,6 +108,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     source_patch = mpatches.Patch(color=domain_colors[True], label='Source Domain')
     target_patch = mpatches.Patch(color=domain_colors[False], label='Target Domain')
     ax.legend(handles=[source_patch, target_patch])
+    ax.set_ylim([0.0, 1.0])
 
     if show_only:
         plt.show()
