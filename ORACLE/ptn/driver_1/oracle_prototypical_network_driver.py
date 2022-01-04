@@ -310,7 +310,8 @@ jig.train(
     num_epochs=n_epoch,
     num_logs_per_epoch=NUM_LOGS_PER_EPOCH,
     patience=patience,
-    optimizer=optimizer
+    optimizer=optimizer,
+    criteria_for_best="source_and_target",
 )
 
 # model.load_state_dict(torch.load(BEST_MODEL_PATH))
