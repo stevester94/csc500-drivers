@@ -54,28 +54,30 @@ if len(sys.argv) > 1 and sys.argv[1] == "-":
     parameters = json.loads(sys.stdin.read())
 elif len(sys.argv) == 1:
     base_parameters = {}
-    base_parameters["experiment_name"] = "ORACLE CNN"
+    base_parameters["experiment_name"] = "MANUAL ORACLE CNN"
     base_parameters["lr"] = 0.0001
     base_parameters["n_epoch"] = 10
     base_parameters["batch_size"] = 256
     base_parameters["patience"] = 10
     base_parameters["seed"] = 1337
+    base_parameters["dataset_seed"] = 1337
     base_parameters["device"] = "cuda"
     base_parameters["desired_serial_numbers"] = ALL_SERIAL_NUMBERS
     base_parameters["source_domains"] = [50,32,8]
     base_parameters["target_domains"] = list(set(ALL_DISTANCES_FEET) - set([50,32,8]))
 
     base_parameters["window_stride"]=50
-    base_parameters["window_length"]=256 #Will break if not 256 due to model hyperparameters
+    base_parameters["window_length"]=512
     base_parameters["desired_runs"]=[1]
-    base_parameters["num_examples_per_device"]=75000
+    base_parameters["num_examples_per_device_per_domain"]=1000
     base_parameters["max_cache_items"] = 4.5e6
 
-    #base_parameters["num_examples_per_device"]=260
+    base_parameters["criteria_for_best"] = "source"
 
 
-    base_parameters["x_net"] =     [# droupout, groups, 512 out
-        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
+
+    base_parameters["x_net"] =     [
+        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},
         {"class": "Conv2d", "kargs": { "in_channels":1, "out_channels":256, "kernel_size":(1,7), "bias":False, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
         {"class": "BatchNorm2d", "kargs": {"num_features":256}},
@@ -85,32 +87,35 @@ elif len(sys.argv) == 1:
         {"class": "BatchNorm2d", "kargs": {"num_features":80}},
         {"class": "Flatten", "kargs": {}},
 
-        {"class": "Linear", "kargs": {"in_features": 80*128, "out_features": 256}}, # 80 units per IQ pair
+        {"class": "Linear", "kargs": {"in_features": 80*256, "out_features": 256}}, # 80 units per IQ pair
         {"class": "ReLU", "kargs": {"inplace": True}},
         {"class": "BatchNorm1d", "kargs": {"num_features":256}},
 
-        {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
+        {"class": "Linear", "kargs": {"in_features": 256, "out_features": len(base_parameters["desired_serial_numbers"])}},
     ]
 
     parameters = base_parameters
 
 
-experiment_name         = parameters["experiment_name"]
-lr                      = parameters["lr"]
-n_epoch                 = parameters["n_epoch"]
-batch_size              = parameters["batch_size"]
-patience                = parameters["patience"]
-seed                    = parameters["seed"]
-device                  = torch.device(parameters["device"])
+experiment_name = parameters["experiment_name"]
+lr              = parameters["lr"]
+n_epoch         = parameters["n_epoch"]
+batch_size      = parameters["batch_size"]
+patience        = parameters["patience"]
+seed            = parameters["seed"]
+dataset_seed    = parameters["dataset_seed"]
+device          = torch.device(parameters["device"])
 
-desired_serial_numbers  = parameters["desired_serial_numbers"]
-source_domains          = parameters["source_domains"]
-target_domains          = parameters["target_domains"]
-window_stride           = parameters["window_stride"]
-window_length           = parameters["window_length"]
-desired_runs            = parameters["desired_runs"]
-num_examples_per_device = parameters["num_examples_per_device"]
-max_cache_items         = int(parameters["max_cache_items"])
+desired_serial_numbers             = parameters["desired_serial_numbers"]
+source_domains                     = parameters["source_domains"]
+target_domains                     = parameters["target_domains"]
+window_stride                      = parameters["window_stride"]
+window_length                      = parameters["window_length"]
+desired_runs                       = parameters["desired_runs"]
+num_examples_per_device_per_domain = parameters["num_examples_per_device_per_domain"]
+max_cache_items                    = int(parameters["max_cache_items"])
+criteria_for_best                  = parameters["criteria_for_best"]
+
 
 start_time_secs = time.time()
 
@@ -136,14 +141,17 @@ x_net           = build_sequential(parameters["x_net"])
 # Build the dataset
 ###################################
 print("Building source dataset")
+
+# The num_examples_per_device looks a little weird because we pull N examples randomly from the desired domains
+# So this is roughly correct
 source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_serial_numbers=desired_serial_numbers,
                 desired_distances=source_domains,
                 desired_runs=desired_runs,
                 window_length=window_length,
                 window_stride=window_stride,
-                num_examples_per_device=num_examples_per_device,
-                seed=seed,  
+                num_examples_per_device=num_examples_per_device_per_domain*len(source_domains),
+                seed=dataset_seed,  
                 max_cache_size=max_cache_items,
                 transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
                 prime_cache=False
@@ -157,8 +165,8 @@ target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_runs=desired_runs,
                 window_length=window_length,
                 window_stride=window_stride,
-                num_examples_per_device=num_examples_per_device,
-                seed=seed,  
+                num_examples_per_device=num_examples_per_device_per_domain*len(target_domains),
+                seed=dataset_seed,  
                 max_cache_size=max_cache_items,
                 transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
                 prime_cache=False
@@ -241,6 +249,7 @@ jig.train(
     patience=patience,
     num_epochs=n_epoch,
     num_logs_per_epoch=NUM_LOGS_PER_EPOCH,
+    criteria_for_best=criteria_for_best
 )
 
 

@@ -58,20 +58,18 @@ elif len(sys.argv) == 1:
 
     base_parameters["seed"] = 1337
     base_parameters["dataset_seed"] = 1337
-    base_parameters["desired_classes"] = ALL_NODES_MINIMUM_1000_EXAMPLES
-    base_parameters["desired_classes"] = ALL_NODES
-
-    base_parameters["source_domains"] = [1,2]
-    base_parameters["target_domains"] = [3,4,5]
+    base_parameters["desired_classes_source"] = ALL_NODES_MINIMUM_1000_EXAMPLES
+    base_parameters["desired_classes_target"] = list(set(ALL_NODES) - set(ALL_NODES_MINIMUM_1000_EXAMPLES))
 
     base_parameters["source_domains"] = [1]
     base_parameters["target_domains"] = [2,3,4,5]
 
-    base_parameters["num_examples_per_class_per_domain"]=100
+    base_parameters["num_examples_per_class_per_domain_source"]=1000
+    base_parameters["num_examples_per_class_per_domain_target"]=100
 
-    base_parameters["n_shot"] = 1
-    base_parameters["n_way"]  = len(base_parameters["desired_classes"])
-    base_parameters["n_query"]  = 2
+    base_parameters["n_shot"] = 2
+    base_parameters["n_way"]  = len(base_parameters["desired_classes_source"])
+    base_parameters["n_query"]  = 1
     base_parameters["train_k_factor"] = 1
     base_parameters["val_k_factor"] = 2
     base_parameters["test_k_factor"] = 2
@@ -119,15 +117,17 @@ dataset_seed            = parameters["dataset_seed"]
 device                  = torch.device(parameters["device"])
 
 # Radio devices (nodes)
-desired_classes  = parameters["desired_classes"]
+desired_classes_source  = parameters["desired_classes_source"]
+desired_classes_target  = parameters["desired_classes_target"]
 
-# Distances
+# Days
 source_domains         = parameters["source_domains"]
 
-# Distances
+# Days
 target_domains         = parameters["target_domains"]
 
-num_examples_per_class_per_domain = parameters["num_examples_per_class_per_domain"]
+num_examples_per_class_per_domain_source = parameters["num_examples_per_class_per_domain_source"]
+num_examples_per_class_per_domain_target = parameters["num_examples_per_class_per_domain_target"]
 
 train_k_factor = parameters["train_k_factor"]
 val_k_factor   = parameters["val_k_factor"]
@@ -197,9 +197,10 @@ og_source_train, og_source_val, og_source_test = build_CORES_episodic_iterable(
     n_query=n_query,
     n_way=n_way,
     n_shot=n_shot,
-    nodes_to_get=desired_classes,
-    num_examples_per_node_per_day=num_examples_per_class_per_domain,
-    seed=dataset_seed,
+    nodes_to_get=desired_classes_source,
+    num_examples_per_node_per_day=num_examples_per_class_per_domain_source,
+    dataset_seed=dataset_seed,
+    iterator_seed=seed,
     train_k_factor=train_k_factor,
     val_k_factor=val_k_factor,
     test_k_factor=test_k_factor,
@@ -210,35 +211,20 @@ og_target_train, og_target_val, og_target_test = build_CORES_episodic_iterable(
     n_query=n_query,
     n_way=n_way,
     n_shot=n_shot,
-    nodes_to_get=desired_classes,
-    num_examples_per_node_per_day=num_examples_per_class_per_domain,
-    seed=dataset_seed,
+    nodes_to_get=desired_classes_target,
+    num_examples_per_node_per_day=num_examples_per_class_per_domain_target,
+    dataset_seed=dataset_seed,
+    iterator_seed=seed,
     train_k_factor=train_k_factor,
     val_k_factor=val_k_factor,
     test_k_factor=test_k_factor,
 )
 
 
+# It's hard to wrap a non-subscriptable iterator in a dataloader, so I simply don't do it
+# This means we are synchronous with loading data, oh well
 def wrap_in_dataloader(ds:list):
     return ds
-    return torch.utils.data.DataLoader(
-        ds, 
-        batch_size=None, # episodic iterable is basically a batch
-        shuffle=False,
-        num_workers=0,
-        # persistent_workers=True,
-        # prefetch_factor=5,
-        pin_memory=True
-    )
-    return torch.utils.data.DataLoader(
-        ds, 
-        batch_size=None, # episodic iterable is basically a batch
-        shuffle=False,
-        num_workers=1,
-        persistent_workers=True,
-        prefetch_factor=5,
-        pin_memory=True
-    )
 
 
 og_source_train_dl, og_source_val_dl, og_source_test_dl = [wrap_in_dataloader(l) for l in (og_source_train, og_source_val, og_source_test)]
@@ -256,29 +242,6 @@ target_train_dl = Lazy_Iterable_Wrapper(og_target_train_dl, transform_lambda)
 target_val_dl = Lazy_Iterable_Wrapper(og_target_val_dl, transform_lambda)
 target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 
-
-# x = next(iter(source_train_dl))[0][0]
-# x = torch.from_numpy(np.ones([2,128]))
-# x = x.reshape(1,2,128)
-# print(x.shape)
-# print(x_net(x).shape)
-# sys.exit(1)
-
-# for i in source_train_dl: pass
-# for i in source_val_dl: pass
-# print("BEGIN")
-# print(len(target_val_dl))
-# for i in target_val_dl: print(".")
-
-# for i in source_train_dl: pass
-# for i in source_val_dl: pass
-# for i in target_val_dl: pass
-
-# for i in source_train_dl: pass
-# for i in source_val_dl: pass
-# for i in target_val_dl: pass
-
-# sys.exit(1)
 
 ###################################
 # Build the model

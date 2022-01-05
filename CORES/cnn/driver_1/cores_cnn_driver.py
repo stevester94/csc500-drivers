@@ -69,7 +69,6 @@ elif len(sys.argv) == 1:
 
     base_parameters["seed"] = 1337
     base_parameters["dataset_seed"] = 1337
-    base_parameters["desired_classes"] = ALL_NODES_MINIMUM_1000_EXAMPLES
     base_parameters["desired_classes"] = ALL_NODES
 
     base_parameters["source_domains"] = [1,2]
@@ -105,9 +104,6 @@ elif len(sys.argv) == 1:
 
         {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
     ]
-
-    base_parameters["criteria_for_best"] = "target"
-
 
 
     parameters = base_parameters
