@@ -69,17 +69,18 @@ elif len(sys.argv) == 1:
 
     base_parameters["num_examples_per_class_per_domain"]=100
 
-    base_parameters["n_shot"] = 3
+    base_parameters["n_shot"] = 1
     base_parameters["n_way"]  = len(base_parameters["desired_classes"])
     base_parameters["n_query"]  = 2
     base_parameters["train_k_factor"] = 1
-    base_parameters["val_k_factor"] = 1
-    base_parameters["test_k_factor"] = 1
+    base_parameters["val_k_factor"] = 2
+    base_parameters["test_k_factor"] = 2
 
-    base_parameters["n_epoch"] = 3
+    base_parameters["n_epoch"] = 25
 
     base_parameters["patience"] = 10
 
+    base_parameters["criteria_for_best"] = "target"
 
     base_parameters["x_net"] =     [
         {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},
@@ -153,6 +154,10 @@ n_epoch = parameters["n_epoch"]
 # How many epochs to train before giving up due to no improvement in loss.
 # Note that patience for PTN considers source_val_loss + target_val_loss.
 patience = parameters["patience"]
+
+# How to pick the best model (and when to give up training)
+# source, target, source_and_target
+criteria_for_best = parameters["criteria_for_best"]
 
 # A list of dictionaries representation of a sequential neural network.
 # The network gets instantiated by my custom 'build_sequential' function.
@@ -259,6 +264,21 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 # print(x_net(x).shape)
 # sys.exit(1)
 
+# for i in source_train_dl: pass
+# for i in source_val_dl: pass
+# print("BEGIN")
+# print(len(target_val_dl))
+# for i in target_val_dl: print(".")
+
+# for i in source_train_dl: pass
+# for i in source_val_dl: pass
+# for i in target_val_dl: pass
+
+# for i in source_train_dl: pass
+# for i in source_val_dl: pass
+# for i in target_val_dl: pass
+
+# sys.exit(1)
 
 ###################################
 # Build the model
@@ -281,7 +301,7 @@ jig.train(
     num_logs_per_epoch=NUM_LOGS_PER_EPOCH,
     patience=patience,
     optimizer=optimizer,
-    criteria_for_best="source_and_target",
+    criteria_for_best="target",
 )
 
 # model.load_state_dict(torch.load(BEST_MODEL_PATH))
