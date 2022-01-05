@@ -263,7 +263,7 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 ###################################
 # Build the model
 ###################################
-model = Steves_Prototypical_Network(x_net)
+model = Steves_Prototypical_Network(x_net, x_shape=(2,256))
 optimizer = Adam(params=model.parameters(), lr=lr)
 
 
