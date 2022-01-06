@@ -53,19 +53,16 @@ if len(sys.argv) > 1 and sys.argv[1] == "-":
     parameters = json.loads(sys.stdin.read())
 elif len(sys.argv) == 1:
     base_parameters = {}
-    base_parameters["experiment_name"] = "One Distance ORACLE PTN"
+    base_parameters["experiment_name"] = "MANUAL ORACLE PTN"
     base_parameters["lr"] = 0.001
     base_parameters["device"] = "cuda"
     base_parameters["max_cache_items"] = 4.5e6
 
     base_parameters["seed"] = 1337
-    base_parameters["desired_serial_numbers"] = ALL_SERIAL_NUMBERS
-    # base_parameters["desired_serial_numbers"] = [
-    #     "3123D52",
-    #     "3123D65",
-    #     "3123D79",
-    #     "3123D80",
-    # ]
+    base_parameters["dataset_seed"] = 1337
+    base_parameters["desired_classes_source"] = ALL_SERIAL_NUMBERS
+    base_parameters["desired_classes_target"] = ALL_SERIAL_NUMBERS
+
     base_parameters["source_domains"] = [38,]
     base_parameters["target_domains"] = [20,44,
         2,
@@ -79,27 +76,26 @@ elif len(sys.argv) == 1:
     ]
 
     base_parameters["window_stride"]=50
-    base_parameters["window_length"]=256
+    base_parameters["window_length"]=512
     base_parameters["desired_runs"]=[1]
-    base_parameters["num_examples_per_device"]=75000
-    base_parameters["num_examples_per_device"]=7500
+    base_parameters["num_examples_per_class_per_domain_source"]=100
+    base_parameters["num_examples_per_class_per_domain_target"]=100
 
     base_parameters["n_shot"] = 3
-    base_parameters["n_way"]  = len(base_parameters["desired_serial_numbers"])
+    base_parameters["n_way"]  = len(base_parameters["desired_classes_source"])
     base_parameters["n_query"]  = 2
-    base_parameters["n_train_tasks"] = 2000
-    base_parameters["n_train_tasks"] = 100
-    base_parameters["n_val_tasks"]  = 100
-    base_parameters["n_test_tasks"]  = 100
+    base_parameters["train_k_factor"] = 1
+    base_parameters["val_k_factor"] = 2
+    base_parameters["test_k_factor"] = 2
 
-    base_parameters["n_epoch"] = 100
+
     base_parameters["n_epoch"] = 3
 
     base_parameters["patience"] = 10
 
 
-    base_parameters["x_net"] =     [# droupout, groups, 512 out
-        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 128]}},
+    base_parameters["x_net"] =     [
+        {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},
         {"class": "Conv2d", "kargs": { "in_channels":1, "out_channels":256, "kernel_size":(1,7), "bias":False, "padding":(0,3), },},
         {"class": "ReLU", "kargs": {"inplace": True}},
         {"class": "BatchNorm2d", "kargs": {"num_features":256}},
@@ -109,7 +105,7 @@ elif len(sys.argv) == 1:
         {"class": "BatchNorm2d", "kargs": {"num_features":80}},
         {"class": "Flatten", "kargs": {}},
 
-        {"class": "Linear", "kargs": {"in_features": 80*128, "out_features": 256}}, # 80 units per IQ pair
+        {"class": "Linear", "kargs": {"in_features": 80*256, "out_features": 256}}, # 80 units per IQ pair
         {"class": "ReLU", "kargs": {"inplace": True}},
         {"class": "BatchNorm1d", "kargs": {"num_features":256}},
 
@@ -128,6 +124,7 @@ lr                      = parameters["lr"]
 
 # Sets seed for anything that uses a seed. Allows the experiment to be perfectly reproducible
 seed                    = parameters["seed"]
+dataset_seed            = parameters["dataset_seed"]
 
 # Which device we run on ['cpu', 'cuda']
 # Note for PTN this must be 'cuda'
@@ -138,7 +135,8 @@ device                  = torch.device(parameters["device"])
 max_cache_items         = parameters["max_cache_items"]
 
 # Serial numbers in the dataset
-desired_serial_numbers  = parameters["desired_serial_numbers"]
+desired_classes_source  = parameters["desired_classes_source"]
+desired_classes_target  = parameters["desired_classes_target"]
 
 # Distances in the source domain
 source_domains         = parameters["source_domains"]
@@ -157,13 +155,9 @@ window_length           = parameters["window_length"]
 # between runs to impair accuracy
 desired_runs            = parameters["desired_runs"]
 
-# The total number of examples per device. Due to how PTN episodes are generated, 
-# this is distributed evenly between each domain (both in source and target)
-# For example if we have 1 source domain, 2 target domains, and specify 10k examples
-# per device, then each device in the single source domain gets 10k examples, but
-# each device in each target domain gets 5k examples
-num_examples_per_device = parameters["num_examples_per_device"]
 
+num_examples_per_class_per_domain_source = parameters["num_examples_per_class_per_domain_source"]
+num_examples_per_class_per_domain_target = parameters["num_examples_per_class_per_domain_target"]
 
 # The n_way of the episodes. Prior literature suggests keeping
 # this consistent between train and test. I suggest keeping this
@@ -176,18 +170,9 @@ n_shot        = parameters["n_shot"]
 # The number of examples per class in the query set for each epsidode
 n_query       = parameters["n_query"]
 
-# The total number of train tasks in the source dataset. Much like num_examples_per_device
-# this will get distributed evenly between all of the source domains.
-# This is roughly equivalent to specifying the number of batches in the train dataset
-n_train_tasks = parameters["n_train_tasks"]
-
-# The total number of validation tasks in the source dataset AND target dataset RESPECTIVELY.
-# In other words, total_num_validation_tasks = 2*n_val_tasks
-# Gets distributed between all of the source and target domains
-n_val_tasks   = parameters["n_val_tasks"]
-
-# The total number of test tasks, behaves identical to n_val_tasks
-n_test_tasks  = parameters["n_test_tasks"]
+train_k_factor = parameters["train_k_factor"]
+val_k_factor   = parameters["val_k_factor"]
+test_k_factor  = parameters["test_k_factor"]
 
 # The maximumum number of "epochs" to train. Note that an epoch is simply a full
 # iteration of the training dataset, it absolutely does not imply that we have iterated
@@ -205,17 +190,10 @@ patience = parameters["patience"]
 parameters["x_net"]
 
 
-n_train_tasks_per_distance_source=int(n_train_tasks/len(source_domains))
-n_val_tasks_per_distance_source=int(n_val_tasks/len(source_domains))
-n_test_tasks_per_distance_source=int(n_test_tasks/len(source_domains))
 max_cache_size_per_distance_source=int(max_cache_items/2/len(source_domains))
-num_examples_per_device_per_distance_source=int(num_examples_per_device/len(source_domains))
 
-n_train_tasks_per_distance_target=int(n_train_tasks/len(target_domains))
-n_val_tasks_per_distance_target=int(n_val_tasks/len(target_domains))
-n_test_tasks_per_distance_target=int(n_test_tasks/len(target_domains))
+
 max_cache_size_per_distance_target=int(max_cache_items/2/len(target_domains))
-num_examples_per_device_per_distance_target=int(num_examples_per_device/len(target_domains))
 
 start_time_secs = time.time()
 
@@ -245,37 +223,39 @@ x_net           = build_sequential(parameters["x_net"])
 ###################################
 print("Building dataset...")
 og_source_train_dl, og_source_val_dl, og_source_test_dl = build_ORACLE_episodic_iterable(
-    desired_serial_numbers=desired_serial_numbers,
+    desired_serial_numbers=desired_classes_source,
     desired_distances=source_domains,
     desired_runs=desired_runs,
     window_length=window_length,
     window_stride=window_stride,
-    num_examples_per_device_per_distance=num_examples_per_device_per_distance_source,
-    seed=seed,
+    num_examples_per_device_per_distance=num_examples_per_class_per_domain_source,
+    iterator_seed=seed,
+    dataset_seed=dataset_seed,
     max_cache_size_per_distance=max_cache_size_per_distance_source,
     n_way=n_way,
     n_shot=n_shot,
     n_query=n_query,
-    n_train_tasks_per_distance=n_train_tasks_per_distance_source,
-    n_val_tasks_per_distance=n_val_tasks_per_distance_source,
-    n_test_tasks_per_distance=n_test_tasks_per_distance_source,
+    train_k_factor=train_k_factor,
+    val_k_factor=val_k_factor,
+    test_k_factor=test_k_factor
 )
 
 og_target_train_dl, og_target_val_dl, og_target_test_dl = build_ORACLE_episodic_iterable(
-    desired_serial_numbers=desired_serial_numbers,
+    desired_serial_numbers=desired_classes_target,
     desired_distances=target_domains,
     desired_runs=desired_runs,
     window_length=window_length,
     window_stride=window_stride,
-    num_examples_per_device_per_distance=num_examples_per_device_per_distance_target,
-    seed=seed,
+    num_examples_per_device_per_distance=num_examples_per_class_per_domain_target,
+    iterator_seed=seed,
+    dataset_seed=dataset_seed,
     max_cache_size_per_distance=max_cache_size_per_distance_target,
     n_way=n_way,
     n_shot=n_shot,
     n_query=n_query,
-    n_train_tasks_per_distance=n_train_tasks_per_distance_target,
-    n_val_tasks_per_distance=n_val_tasks_per_distance_target,
-    n_test_tasks_per_distance=n_test_tasks_per_distance_target,
+    train_k_factor=train_k_factor,
+    val_k_factor=val_k_factor,
+    test_k_factor=test_k_factor
 )
 
 # For CNN We only use X and Y. And we only train on the source.
@@ -294,7 +274,7 @@ target_test_dl = Lazy_Iterable_Wrapper(og_target_test_dl, transform_lambda)
 ###################################
 # Build the model
 ###################################
-model = Steves_Prototypical_Network(x_net)
+model = Steves_Prototypical_Network(x_net, x_shape=(2,256))
 optimizer = Adam(params=model.parameters(), lr=lr)
 
 

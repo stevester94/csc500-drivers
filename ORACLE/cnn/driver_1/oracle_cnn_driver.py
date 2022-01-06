@@ -56,7 +56,7 @@ elif len(sys.argv) == 1:
     base_parameters = {}
     base_parameters["experiment_name"] = "MANUAL ORACLE CNN"
     base_parameters["lr"] = 0.0001
-    base_parameters["n_epoch"] = 10
+    base_parameters["n_epoch"] = 3
     base_parameters["batch_size"] = 256
     base_parameters["patience"] = 10
     base_parameters["seed"] = 1337
@@ -69,7 +69,7 @@ elif len(sys.argv) == 1:
     base_parameters["window_stride"]=50
     base_parameters["window_length"]=512
     base_parameters["desired_runs"]=[1]
-    base_parameters["num_examples_per_device_per_domain"]=1000
+    base_parameters["num_examples_per_class_per_domain"]=100
     base_parameters["max_cache_items"] = 4.5e6
 
     base_parameters["criteria_for_best"] = "source"
@@ -112,7 +112,7 @@ target_domains                     = parameters["target_domains"]
 window_stride                      = parameters["window_stride"]
 window_length                      = parameters["window_length"]
 desired_runs                       = parameters["desired_runs"]
-num_examples_per_device_per_domain = parameters["num_examples_per_device_per_domain"]
+num_examples_per_class_per_domain = parameters["num_examples_per_class_per_domain"]
 max_cache_items                    = int(parameters["max_cache_items"])
 criteria_for_best                  = parameters["criteria_for_best"]
 
@@ -150,7 +150,7 @@ source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_runs=desired_runs,
                 window_length=window_length,
                 window_stride=window_stride,
-                num_examples_per_device=num_examples_per_device_per_domain*len(source_domains),
+                num_examples_per_device=num_examples_per_class_per_domain*len(source_domains),
                 seed=dataset_seed,  
                 max_cache_size=max_cache_items,
                 transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
@@ -165,7 +165,7 @@ target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                 desired_runs=desired_runs,
                 window_length=window_length,
                 window_stride=window_stride,
-                num_examples_per_device=num_examples_per_device_per_domain*len(target_domains),
+                num_examples_per_device=num_examples_per_class_per_domain*len(target_domains),
                 seed=dataset_seed,  
                 max_cache_size=max_cache_items,
                 transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),

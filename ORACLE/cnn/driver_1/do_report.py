@@ -74,6 +74,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["device", experiment["parameters"]["device"]],
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
+            ["N per class per domain", str(experiment["parameters"]["num_examples_per_class_per_domain"])],
         ],
         loc="best",
         cellLoc='left',
