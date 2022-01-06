@@ -673,87 +673,43 @@ class Test_Datasets(unittest.TestCase):
 
         NUM_ITERATIONS = 3
 
-        for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
-            (100, 100, len(params.desired_classes_source), 2, 3, 1),
+        params.train_k_factor = 1
+        params.val_k_factor   = 1
+        params.test_k_factor  = 1
+        params.num_examples_per_class_per_domain_source = 100
+        params.num_examples_per_class_per_domain_target = 100
+        params.n_shot = 2
+        params.n_way = len(params.desired_classes_source)
+        params.n_query = 3
 
-        ]:
-            params.train_k_factor = k_factor
-            params.val_k_factor   = k_factor
-            params.test_k_factor  = k_factor
-            params.num_examples_per_class_per_domain_source = num_examples_per_class_per_domain_source
-            params.num_examples_per_class_per_domain_target = num_examples_per_class_per_domain_target
-            params.n_shot = n_shot
-            params.n_way = n_way
-            params.n_query = n_query
+        all_hashes = set()
 
-            source_train = set()
-            source_val   = set()
-            source_test  = set()
 
-            target_train = set()
-            target_val   = set()
-            target_test  = set()
+        for _ in range(NUM_ITERATIONS):
+            p = parse_and_validate_parameters(params)
+            datasets = prep_datasets(p)
 
-            for _ in range(NUM_ITERATIONS):
-                p = parse_and_validate_parameters(params)
-                datasets = prep_datasets(p)
-            
-                # source
-                train_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.train:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: train_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: train_hashes.append(h)
+            hashes = []
 
-                val_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.val:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: val_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: val_hashes.append(h)
+            # source
+            for ds in datasets.source.original.values():
+                for u, (support_x, support_y, query_x, query_y, real_classes) in ds:
+                    hashes.append(numpy_to_hash(support_x.numpy()))
+                    hashes.append(numpy_to_hash(query_x.numpy()))
 
-                test_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.test:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: test_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: test_hashes.append(h)
-                
-                source_train.add(hash(tuple(train_hashes)))
-                source_val.add(hash(tuple(val_hashes)))
-                source_test.add(hash(tuple(test_hashes)))
-            
+            # target
+            for ds in datasets.target.original.values():
+                for u, (support_x, support_y, query_x, query_y, real_classes) in ds:
+                    hashes.append(numpy_to_hash(support_x.numpy()))
+                    hashes.append(numpy_to_hash(query_x.numpy()))
 
-                # target
-                train_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.train:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: train_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: train_hashes.append(h)
+            all_hashes.add(
+                hash(tuple(hashes))
+            )
+        
+        print(all_hashes)
+        self.assertEqual(len(all_hashes), 1)
 
-                val_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.val:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: val_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: val_hashes.append(h)
-
-                test_hashes = []
-                for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.test:                   
-                    for h in [numpy_to_hash(x.numpy()) for x in support_x]: test_hashes.append(h)
-                    for h in [numpy_to_hash(x.numpy()) for x in query_x]: test_hashes.append(h)
-                
-                target_train.add(hash(tuple(train_hashes)))
-                target_val.add(hash(tuple(val_hashes)))
-                target_test.add(hash(tuple(test_hashes)))
-            
-            self.assertEqual(len(source_train), 1 )
-            self.assertEqual(len(source_val),   1 )
-            self.assertEqual(len(source_test),  1 )
-            self.assertEqual(len(target_train), 1 )
-            self.assertEqual(len(target_val),   1 )
-            self.assertEqual(len(target_test),  1 )
-
-            print(hash(tuple([
-                tuple(source_train),
-                tuple(source_val),
-                tuple(source_test),
-                tuple(target_train),
-                tuple(target_val),
-                tuple(target_test),
-            ])))
 
     # @unittest.skip
     def test_splits(self):
