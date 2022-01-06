@@ -71,9 +71,6 @@ elif len(sys.argv) == 1:
     base_parameters["dataset_seed"] = 1337
     base_parameters["desired_classes"] = ALL_NODES
 
-    base_parameters["source_domains"] = [1,2]
-    base_parameters["target_domains"] = [3,4,5]
-
     base_parameters["source_domains"] = [1]
     base_parameters["target_domains"] = [2,3,4,5]
 
@@ -102,7 +99,7 @@ elif len(sys.argv) == 1:
         {"class": "ReLU", "kargs": {"inplace": True}},
         {"class": "BatchNorm1d", "kargs": {"num_features":256}},
 
-        {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
+        {"class": "Linear", "kargs": {"in_features": 256, "out_features": len(base_parameters["desired_classes"])}},
     ]
 
 

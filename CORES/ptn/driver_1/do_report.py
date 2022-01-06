@@ -75,7 +75,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
 
-            ["Num examples per class per domain", experiment["parameters"]["num_examples_per_class_per_domain"]],
+            ["N per class per domain source", experiment["parameters"]["num_examples_per_class_per_domain_source"]],
+            ["N per class per domain target", experiment["parameters"]["num_examples_per_class_per_domain_target"]],
             ["Num shot", experiment["parameters"]["n_shot"]],
             ["Num way", experiment["parameters"]["n_way"]],
             ["Num query", experiment["parameters"]["n_query"]],

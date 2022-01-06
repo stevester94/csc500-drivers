@@ -59,12 +59,13 @@ elif len(sys.argv) == 1:
     base_parameters["seed"] = 1337
     base_parameters["dataset_seed"] = 1337
     base_parameters["desired_classes_source"] = ALL_NODES_MINIMUM_1000_EXAMPLES
-    base_parameters["desired_classes_target"] = list(set(ALL_NODES) - set(ALL_NODES_MINIMUM_1000_EXAMPLES))
+    # base_parameters["desired_classes_target"] = list(set(ALL_NODES) - set(ALL_NODES_MINIMUM_1000_EXAMPLES))
+    base_parameters["desired_classes_target"] = ALL_NODES_MINIMUM_1000_EXAMPLES
 
     base_parameters["source_domains"] = [1]
     base_parameters["target_domains"] = [2,3,4,5]
 
-    base_parameters["num_examples_per_class_per_domain_source"]=1000
+    base_parameters["num_examples_per_class_per_domain_source"]=100
     base_parameters["num_examples_per_class_per_domain_target"]=100
 
     base_parameters["n_shot"] = 2
@@ -74,7 +75,7 @@ elif len(sys.argv) == 1:
     base_parameters["val_k_factor"] = 2
     base_parameters["test_k_factor"] = 2
 
-    base_parameters["n_epoch"] = 25
+    base_parameters["n_epoch"] = 3
 
     base_parameters["patience"] = 10
 
