@@ -93,7 +93,7 @@ def numpy_to_hash(n:np.ndarray):
     return hash(n.data.tobytes())
 
 class Test_Datasets(unittest.TestCase):
-    @unittest.skip
+    # @unittest.skip
     def test_correct_domains(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -128,7 +128,7 @@ class Test_Datasets(unittest.TestCase):
                     seen_domains, set(params.target_domains)
                 )
 
-    @unittest.skip
+    # @unittest.skip
     def test_correct_labels(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -193,9 +193,6 @@ class Test_Datasets(unittest.TestCase):
             
 
             for u, hashes in examples_by_domain.items():
-                print(len(hashes))
-
-            for u, hashes in examples_by_domain.items():
                 self.assertGreaterEqual(
                     len(hashes) / ( num_examples_per_class_per_domain * len(params.desired_classes) ),
                     0.9
@@ -216,9 +213,6 @@ class Test_Datasets(unittest.TestCase):
             
 
             for u, hashes in examples_by_domain.items():
-                print(len(hashes))
-
-            for u, hashes in examples_by_domain.items():
                 self.assertGreaterEqual(
                     len(hashes) / ( num_examples_per_class_per_domain * len(params.desired_classes) ),
                     0.9
@@ -229,7 +223,7 @@ class Test_Datasets(unittest.TestCase):
                 )
 
 
-    @unittest.skip
+    # @unittest.skip
     def test_sets_disjoint(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -285,7 +279,7 @@ class Test_Datasets(unittest.TestCase):
             self.assertEqual( len(train_hashes.intersection(test_hashes)), 0 )
             self.assertEqual( len(val_hashes.intersection(test_hashes)),   0 )
 
-    @unittest.skip
+    # @unittest.skip
     def test_train_randomizes_episodes_val_and_test_dont(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -358,7 +352,7 @@ class Test_Datasets(unittest.TestCase):
             self.assertEqual(len(test), 1)
 
 
-    @unittest.skip
+    # @unittest.skip
     def test_iterator_changes_permutation(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -432,7 +426,7 @@ class Test_Datasets(unittest.TestCase):
         self.assertEqual(  len(target_train), len(combos)  )
 
 
-    @unittest.skip
+    # @unittest.skip
     def test_dataset_seed(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -505,7 +499,7 @@ class Test_Datasets(unittest.TestCase):
         self.assertEqual(  len(target_test),  1)
         self.assertEqual(  len(target_train),  1)
 
-    @unittest.skip
+    # @unittest.skip
     def test_reproducability(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
@@ -544,7 +538,7 @@ class Test_Datasets(unittest.TestCase):
         print(all_hashes)
 
 
-    @unittest.skip
+    # @unittest.skip
     def test_splits(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
