@@ -87,7 +87,7 @@ base_parameters["x_net"] =     [
 ]
 
 
-def wrap_in_dataloader(ds):
+def wrap_in_dataloader(p, ds):
     return torch.utils.data.DataLoader(
         ds,
         batch_size=p.batch_size,
@@ -149,8 +149,6 @@ def build_datasets(p:EasyDict)->EasyDict:
         },
     }
     """
-    print("Building source dataset")
-
     # The num_examples_per_device looks a little weird because we pull N examples randomly from the desired domains
     # So this is roughly correct
     source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
@@ -165,8 +163,6 @@ def build_datasets(p:EasyDict)->EasyDict:
                     transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
                     prime_cache=False
     )
-
-    print("Build target dataset")
 
     target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                     desired_serial_numbers=p.desired_classes,
@@ -202,22 +198,28 @@ def build_datasets(p:EasyDict)->EasyDict:
     transform_lambda = lambda ex: ex[:2] # Strip the tuple to just (x,y)
 
     source_processed_train = wrap_in_dataloader(
+        p,
         Lazy_Map(source_original_train, transform_lambda)
     )
     source_processed_val = wrap_in_dataloader(
+        p,
         Lazy_Map(source_original_val, transform_lambda)
     )
     source_processed_test = wrap_in_dataloader(
+        p,
         Lazy_Map(source_original_test, transform_lambda)
     )
 
     target_processed_train = wrap_in_dataloader(
+        p,
         Lazy_Map(target_original_train, transform_lambda)
     )
     target_processed_val = wrap_in_dataloader(
+        p,
         Lazy_Map(target_original_val, transform_lambda)
     )
     target_processed_test  = wrap_in_dataloader(
+        p,
         Lazy_Map(target_original_test, transform_lambda)
     )
 
@@ -289,7 +291,7 @@ def evaluate_model_and_create_experiment_summary(
 
     total_epochs_trained = len(history["epoch_indices"])
 
-    val_dl = wrap_in_dataloader(Sequence_Aggregator((ds.source.original.val, ds.target.original.val)))
+    val_dl = wrap_in_dataloader(p, Sequence_Aggregator((ds.source.original.val, ds.target.original.val)))
 
     confusion = confusion_by_domain_over_dataloader(model, p.device, val_dl, forward_uses_domain=False)
     per_domain_accuracy = per_domain_accuracy_from_confusion(confusion)
