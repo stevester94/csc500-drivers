@@ -285,13 +285,11 @@ class Test_Datasets(unittest.TestCase):
         
             # source
             expected_episodes = k_factor * num_examples_per_class_per_domain_source * len(params.desired_classes_source) * len(params.source_domains) / (n_way*(n_shot + n_query))
-            print(expected_episodes)
             len_episodes = sum([len(ds) for ds in datasets.source.original.values()])
             got_episodes = 0
             for ds in (datasets.source.original.values()):
                 for u, (support_x, support_y, query_x, query_y, real_classes) in ds:                   
                     got_episodes +=1
-            print(got_episodes)
             self.assertEqual(len_episodes, got_episodes)
             self.assertGreaterEqual(
                 got_episodes / expected_episodes,
@@ -305,13 +303,11 @@ class Test_Datasets(unittest.TestCase):
 
             # target
             expected_episodes = k_factor * num_examples_per_class_per_domain_target * len(params.desired_classes_target) * len(params.target_domains) / (n_way*(n_shot + n_query))
-            print(expected_episodes)
             len_episodes = sum([len(ds) for ds in datasets.target.original.values()])
             got_episodes = 0
             for ds in (datasets.target.original.values()):
                 for u, (support_x, support_y, query_x, query_y, real_classes) in ds:                   
                     got_episodes +=1
-            print(got_episodes)
             self.assertEqual(len_episodes, got_episodes)
             self.assertGreaterEqual(
                 got_episodes / expected_episodes,
