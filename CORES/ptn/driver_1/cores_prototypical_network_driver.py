@@ -286,7 +286,7 @@ def build_model(p:EasyDict)->tuple:
 ###################################
 # train
 ###################################
-def train(p:easydict, model, optimizer, datasets:EasyDict)->PTN_Train_Eval_Test_Jig:
+def train(p:EasyDict, model, optimizer, datasets:EasyDict)->PTN_Train_Eval_Test_Jig:
     jig = PTN_Train_Eval_Test_Jig(model, p.BEST_MODEL_PATH, p.device)
 
     jig.train(
