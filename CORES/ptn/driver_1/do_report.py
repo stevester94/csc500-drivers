@@ -1,11 +1,15 @@
 #! /usr/bin/env python3
 
 import matplotlib.pyplot as plt
-import matplotlib.gridspec
+import matplotlib as mpl
 import json
 from steves_utils.ptn_train_eval_test_jig import PTN_Train_Eval_Test_Jig
 import pandas as pds
 import matplotlib.patches as mpatches
+import textwrap as twp
+
+import pylustrator
+pylustrator.start()
 
 
 def do_report(experiment_json_path, loss_curve_path, show_only=False):
@@ -63,8 +67,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     ax.set_axis_off() 
     ax.set_title("Parameters")
 
-    t = ax.table(
-        [
+    table_data = [
             ["Experiment Name", experiment["parameters"]["experiment_name"]],
             ["Learning Rate", experiment["parameters"]["lr"]],
             ["Num Epochs", experiment["parameters"]["n_epoch"]],
@@ -77,15 +80,16 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
             ["N per class per domain source", experiment["parameters"]["num_examples_per_class_per_domain_source"]],
             ["N per class per domain target", experiment["parameters"]["num_examples_per_class_per_domain_target"]],
-            ["Num shot", experiment["parameters"]["n_shot"]],
-            ["Num way", experiment["parameters"]["n_way"]],
-            ["Num query", experiment["parameters"]["n_query"]],
-            ["Num epoch", experiment["parameters"]["n_epoch"]],
-            ["Train k factor", experiment["parameters"]["train_k_factor"]],
-            ["Val k factor", experiment["parameters"]["val_k_factor"]],
-            ["Test k factor", experiment["parameters"]["test_k_factor"]],
 
-        ],
+            ["(n_shot, n_way, n_query)", str((experiment["parameters"]["n_shot"], experiment["parameters"]["n_way"],experiment["parameters"]["n_query"]))],
+            ["train_k, val_k, test_k", str((experiment["parameters"]["train_k_factor"], experiment["parameters"]["val_k_factor"],experiment["parameters"]["test_k_factor"]))],
+            ["Source Classes", "fuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuck"]
+        ]
+    
+    table_data = [(e[0], twp.fill(str(e[1]), 25)) for e in table_data]
+    
+    t = ax.table(
+        table_data,
         loc="best",
         cellLoc='left',
         colWidths=[0.3,0.45],
