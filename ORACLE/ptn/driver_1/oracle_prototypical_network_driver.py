@@ -70,7 +70,8 @@ base_parameters["n_epoch"] = 3
 
 base_parameters["patience"] = 10
 base_parameters["criteria_for_best"] = "target"
-base_parameters["normalize"] = False
+base_parameters["normalize_source"] = False
+base_parameters["normalize_target"] = False
 
 
 base_parameters["x_net"] =     [
@@ -236,7 +237,7 @@ def build_datasets(p:EasyDict)->EasyDict:
         train_k_factor=p.train_k_factor,
         val_k_factor=p.val_k_factor,
         test_k_factor=p.test_k_factor,
-        normalize=p.normalize
+        normalize=p.normalize_source
     )
 
     target_original_train, target_original_val, target_original_test = build_ORACLE_episodic_iterable(
@@ -255,7 +256,7 @@ def build_datasets(p:EasyDict)->EasyDict:
         train_k_factor=p.train_k_factor,
         val_k_factor=p.val_k_factor,
         test_k_factor=p.test_k_factor,
-        normalize=p.normalize
+        normalize=p.normalize_target
     )
 
     # For CNN We only use X and Y. And we only train on the source.

@@ -59,7 +59,8 @@ base_parameters["num_examples_per_class_per_domain"]=1000
 base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["criteria_for_best"] = "source"
-base_parameters["normalize"] = False
+base_parameters["normalize_source"] = False
+base_parameters["normalize_target"] = False
 
 base_parameters["NUM_LOGS_PER_EPOCH"] = 10
 base_parameters["RESULTS_DIR"] = "./results"
@@ -163,7 +164,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     max_cache_size=p.max_cache_items,
                     transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
                     prime_cache=False,
-                    normalize=p.normalize
+                    normalize=p.normalize_source
     )
 
     target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
@@ -177,7 +178,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     max_cache_size=p.max_cache_items,
                     transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
                     prime_cache=False,
-                    normalize=p.normalize
+                    normalize=p.normalize_target
     )
 
 

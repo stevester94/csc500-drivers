@@ -61,7 +61,8 @@ base_parameters["n_epoch"] = 25
 base_parameters["patience"] = 10
 
 base_parameters["criteria_for_best"] = "target"
-base_parameters["normalize"] = False
+base_parameters["normalize_source"] = False
+base_parameters["normalize_target"] = False
 
 base_parameters["x_net"] =     [
     {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},
@@ -144,7 +145,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,  
                     transform_func=lambda x: (x["IQ"], node_name_to_id(x["node_name"]), x["day"]),
-                    normalize=p.normalize
+                    normalize=p.normalize_source
     )
 
     target_ds = CORES_Torch.CORES_Torch_Dataset(
@@ -153,7 +154,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,
                     transform_func=lambda x: (x["IQ"], node_name_to_id(x["node_name"]), x["day"]),
-                    normalize=p.normalize
+                    normalize=p.normalize_target
     )
 
 

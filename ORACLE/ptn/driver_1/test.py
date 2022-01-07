@@ -36,13 +36,11 @@ base_parameters["desired_classes_source"] = ALL_SERIAL_NUMBERS
 base_parameters["desired_classes_target"] = ALL_SERIAL_NUMBERS
 
 base_parameters["source_domains"] = [38,]
-base_parameters["target_domains"] = [20,44,
+base_parameters["target_domains"] = [
+    20,
+    44,
     2,
     8,
-    14,
-    26,
-    32,
-    50,
     56,
     62
 ]
@@ -65,7 +63,8 @@ base_parameters["n_epoch"] = 3
 
 base_parameters["patience"] = 10
 base_parameters["criteria_for_best"] = "target"
-base_parameters["normalize"] = False
+base_parameters["normalize_source"] = False
+base_parameters["normalize_target"] = False
 
 
 base_parameters["x_net"] =     [
@@ -210,7 +209,6 @@ class Test_Datasets(unittest.TestCase):
 
         for source, target in [
             (100, 100),
-            (200, 100),
             (1000, 100),
             (100, 1000),
             (1000, 1000),
@@ -415,7 +413,7 @@ class Test_Datasets(unittest.TestCase):
         params.desired_classes_source = ALL_SERIAL_NUMBERS
         params.desired_classes_target = ALL_SERIAL_NUMBERS
 
-        NUM_ITERATIONS = 5
+        NUM_ITERATIONS = 3
 
         for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
             (100, 100, len(params.desired_classes_source), 2, 3, 1),
