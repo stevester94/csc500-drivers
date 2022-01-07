@@ -74,7 +74,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
             ["N per class per domain", str(experiment["parameters"]["num_examples_per_class_per_domain"])],
-            ["Classes", experiment["parameters"]["desired_classes"]   ],
+            ["Classes (n={})".format(len(experiment["parameters"]["desired_classes"])),
+                experiment["parameters"]["desired_classes"]   ],
         ]
 
     table_data = [(e[0], twp.fill(str(e[1]), 90)) for e in table_data]
@@ -106,7 +107,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
 
     df = pds.DataFrame(per_domain_accuracy, columns=["domain", "accuracy", "source?"])
-    df.domain = df.domain.astype(float)
+    df.domain = df.domain.astype(int)
     df = df.set_index("domain")
     df = df.sort_values("domain")
 
@@ -117,6 +118,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     target_patch = mpatches.Patch(color=domain_colors[False], label='Target Domain')
     ax.legend(handles=[source_patch, target_patch])
     ax.set_ylim([0.0, 1.0])
+    plt.sca(ax)
+    plt.xticks(rotation=45, fontsize=13)
 
     if show_only:
         plt.show()

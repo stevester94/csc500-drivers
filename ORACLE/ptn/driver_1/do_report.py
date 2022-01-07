@@ -82,8 +82,10 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
         ["(n_shot, n_way, n_query)", str((experiment["parameters"]["n_shot"], experiment["parameters"]["n_way"],experiment["parameters"]["n_query"]))],
         ["train_k, val_k, test_k", str((experiment["parameters"]["train_k_factor"], experiment["parameters"]["val_k_factor"],experiment["parameters"]["test_k_factor"]))],
-        ["Source Classes", experiment["parameters"]["desired_classes_source"]   ],
-        ["Target Classes", experiment["parameters"]["desired_classes_target"]   ]
+        ["Source Classes (n={})".format(len(experiment["parameters"]["desired_classes_source"])),
+            experiment["parameters"]["desired_classes_source"]   ],
+        ["Target Classes (n={})".format(len(experiment["parameters"]["desired_classes_target"])),
+            experiment["parameters"]["desired_classes_target"]   ]
     ]
 
     table_data = [(e[0], twp.fill(str(e[1]), 70)) for e in table_data]
