@@ -65,6 +65,7 @@ base_parameters["n_epoch"] = 3
 
 base_parameters["patience"] = 10
 base_parameters["criteria_for_best"] = "target"
+base_parameters["normalize"] = False
 
 
 base_parameters["x_net"] =     [
