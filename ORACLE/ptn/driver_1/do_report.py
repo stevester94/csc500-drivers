@@ -1,11 +1,13 @@
 #! /usr/bin/env python3
 
 import matplotlib.pyplot as plt
-import matplotlib.gridspec
 import json
 from steves_utils.ptn_train_eval_test_jig import PTN_Train_Eval_Test_Jig
 import pandas as pds
+import textwrap as twp
 import matplotlib.patches as mpatches
+
+
 
 
 def do_report(experiment_json_path, loss_curve_path, show_only=False):
@@ -63,31 +65,31 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     ax.set_axis_off() 
     ax.set_title("Parameters")
 
+    table_data = [
+        ["Experiment Name", experiment["parameters"]["experiment_name"]],
+        ["Learning Rate", experiment["parameters"]["lr"]],
+        ["Num Epochs", experiment["parameters"]["n_epoch"]],
+        ["patience", experiment["parameters"]["patience"]],
+        ["(seed, dataset seed)", (experiment["parameters"]["seed"], experiment["parameters"]["dataset_seed"])],
+        ["Source Domains", str(experiment["parameters"]["source_domains"])],
+        ["Target Domains", str(experiment["parameters"]["target_domains"])],
+
+        ["stride, n_sample_per_window, runs",
+            (experiment["parameters"]["window_stride"], experiment["parameters"]["window_length"], experiment["parameters"]["desired_runs"])],
+
+        ["N per class per domain source", experiment["parameters"]["num_examples_per_class_per_domain_source"]],
+        ["N per class per domain target", experiment["parameters"]["num_examples_per_class_per_domain_target"]],
+
+        ["(n_shot, n_way, n_query)", str((experiment["parameters"]["n_shot"], experiment["parameters"]["n_way"],experiment["parameters"]["n_query"]))],
+        ["train_k, val_k, test_k", str((experiment["parameters"]["train_k_factor"], experiment["parameters"]["val_k_factor"],experiment["parameters"]["test_k_factor"]))],
+        ["Source Classes", experiment["parameters"]["desired_classes_source"]   ],
+        ["Target Classes", experiment["parameters"]["desired_classes_target"]   ]
+    ]
+
+    table_data = [(e[0], twp.fill(str(e[1]), 70)) for e in table_data]
+
     t = ax.table(
-        [
-            ["Experiment Name", experiment["parameters"]["experiment_name"]],
-            ["Learning Rate", experiment["parameters"]["lr"]],
-            ["Num Epochs", experiment["parameters"]["n_epoch"]],
-            ["patience", experiment["parameters"]["patience"]],
-            ["seed", experiment["parameters"]["seed"]],
-            ["device", experiment["parameters"]["device"]],
-            ["Source Domains", str(experiment["parameters"]["source_domains"])],
-            ["Target Domains", str(experiment["parameters"]["target_domains"])],
-
-            ["Window Stride", experiment["parameters"]["window_stride"]],
-            ["Num Floats per Window", experiment["parameters"]["window_length"]],
-            ["Runs", experiment["parameters"]["desired_runs"]],
-            ["N per class per domain source", experiment["parameters"]["num_examples_per_class_per_domain_source"]],
-            ["N per class per domain target", experiment["parameters"]["num_examples_per_class_per_domain_target"]],
-            ["Num shot", experiment["parameters"]["n_shot"]],
-            ["Num way", experiment["parameters"]["n_way"]],
-            ["Num query", experiment["parameters"]["n_query"]],
-            ["Num epoch", experiment["parameters"]["n_epoch"]],
-            ["Train k factor", experiment["parameters"]["train_k_factor"]],
-            ["Val k factor", experiment["parameters"]["val_k_factor"]],
-            ["Test k factor", experiment["parameters"]["test_k_factor"]],
-
-        ],
+        table_data,
         loc="best",
         cellLoc='left',
         colWidths=[0.3,0.45],
@@ -95,6 +97,14 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     t.auto_set_font_size(False)
     t.set_fontsize(20)
     t.scale(1.5, 2)
+
+    c = t.get_celld()[(12,1)]
+    c.set_height( c.get_height() * 3 )
+    c.set_fontsize(15)
+
+    c = t.get_celld()[(13,1)]
+    c.set_height( c.get_height() * 3 )
+    c.set_fontsize(15)
 
 
 
@@ -111,7 +121,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
 
     df = pds.DataFrame(per_domain_accuracy, columns=["domain", "accuracy", "source?"])
-    df.domain = df.domain.astype(float)
+    df.domain = df.domain.astype(int)
     df = df.set_index("domain")
     df = df.sort_values("domain")
 
@@ -122,6 +132,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     target_patch = mpatches.Patch(color=domain_colors[False], label='Target Domain')
     ax.legend(handles=[source_patch, target_patch])
     ax.set_ylim([0.0, 1.0])
+    plt.sca(ax)
+    plt.xticks(rotation=45, fontsize=13)
 
     if show_only:
         plt.show()

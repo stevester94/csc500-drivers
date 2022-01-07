@@ -8,8 +8,6 @@ import pandas as pds
 import matplotlib.patches as mpatches
 import textwrap as twp
 
-import pylustrator
-pylustrator.start()
 
 
 def do_report(experiment_json_path, loss_curve_path, show_only=False):
@@ -72,9 +70,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Learning Rate", experiment["parameters"]["lr"]],
             ["Num Epochs", experiment["parameters"]["n_epoch"]],
             ["patience", experiment["parameters"]["patience"]],
-            ["seed", experiment["parameters"]["seed"]],
-            ["dataset seed", experiment["parameters"]["dataset_seed"]],
-            ["device", experiment["parameters"]["device"]],
+            ["(seed, dataset seed)", (experiment["parameters"]["seed"], experiment["parameters"]["dataset_seed"])],
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
 
@@ -83,11 +79,12 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
             ["(n_shot, n_way, n_query)", str((experiment["parameters"]["n_shot"], experiment["parameters"]["n_way"],experiment["parameters"]["n_query"]))],
             ["train_k, val_k, test_k", str((experiment["parameters"]["train_k_factor"], experiment["parameters"]["val_k_factor"],experiment["parameters"]["test_k_factor"]))],
-            ["Source Classes", "fuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuck"]
+            ["Source Classes", experiment["parameters"]["desired_classes_source"]   ],
+            ["Target Classes", experiment["parameters"]["desired_classes_target"]   ]
         ]
     
-    table_data = [(e[0], twp.fill(str(e[1]), 25)) for e in table_data]
-    
+    table_data = [(e[0], twp.fill(str(e[1]), 70)) for e in table_data]
+
     t = ax.table(
         table_data,
         loc="best",
@@ -98,6 +95,13 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     t.set_fontsize(20)
     t.scale(1.5, 2)
 
+    c = t.get_celld()[(11,1)]
+    c.set_height( c.get_height() * 3 )
+    c.set_fontsize(15)
+
+    c = t.get_celld()[(12,1)]
+    c.set_height( c.get_height() * 3 )
+    c.set_fontsize(15)
 
 
     #
@@ -113,7 +117,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
 
     df = pds.DataFrame(per_domain_accuracy, columns=["domain", "accuracy", "source?"])
-    df.domain = df.domain.astype(float)
+    df.domain = df.domain.astype(int)
     df = df.set_index("domain")
     df = df.sort_values("domain")
 
@@ -124,6 +128,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     target_patch = mpatches.Patch(color=domain_colors[False], label='Target Domain')
     ax.legend(handles=[source_patch, target_patch])
     ax.set_ylim([0.0, 1.0])
+    plt.sca(ax)
+    plt.xticks(rotation=45, fontsize=13)
 
     if show_only:
         plt.show()
