@@ -1,21 +1,17 @@
 #! /usr/bin/env python3
 
-import numpy as np
 import os, json, sys, time, random
-
-from torch.optim import Adam, optimizer
+import numpy as np
 import torch
-
+from torch.optim import Adam
 from  easydict import EasyDict
 
-from steves_utils.torch_sequential_builder import build_sequential
-
-
 from steves_models.steves_ptn import Steves_Prototypical_Network
+
 from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
 from steves_utils.iterable_aggregator import Iterable_Aggregator
 from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
-
+from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.torch_utils import get_dataset_metrics, ptn_confusion_by_domain_over_dataloader
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
 

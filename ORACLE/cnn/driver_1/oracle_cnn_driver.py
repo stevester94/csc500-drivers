@@ -1,15 +1,9 @@
 #! /usr/bin/env python3
-import os
-from numpy.lib.utils import source
-import torch
+import os, json, sys, time, random
 import numpy as np
-import os
-import sys
-import json
-import time
+import torch
+from  easydict import EasyDict
 from math import floor
-from easydict import EasyDict
-import random
 
 from steves_utils.torch_utils import get_dataset_metrics
 from steves_models.configurable_vanilla import Configurable_Vanilla
@@ -17,6 +11,7 @@ from steves_utils.vanilla_train_eval_test_jig import  Vanilla_Train_Eval_Test_Ji
 from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.lazy_map import Lazy_Map
 from steves_utils.sequence_aggregator import Sequence_Aggregator
+
 import steves_utils.ORACLE.torch_utils as ORACLE_Torch
 from steves_utils.ORACLE.utils_v2 import (
     ALL_DISTANCES_FEET,
