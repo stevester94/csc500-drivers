@@ -61,7 +61,7 @@ base_parameters["n_epoch"] = 25
 base_parameters["patience"] = 10
 
 base_parameters["criteria_for_best"] = "target"
-base_parameters["normalize"] = True
+base_parameters["normalize"] = False
 
 base_parameters["x_net"] =     [
     {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},

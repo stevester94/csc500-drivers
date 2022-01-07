@@ -63,7 +63,7 @@ base_parameters["test_k_factor"] = 2
 base_parameters["n_epoch"] = 3
 
 base_parameters["patience"] = 10
-base_parameters["normalize"] = True
+base_parameters["normalize"] = False
 
 base_parameters["criteria_for_best"] = "target"
 

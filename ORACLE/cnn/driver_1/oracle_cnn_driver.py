@@ -55,10 +55,11 @@ base_parameters["target_domains"] = list(set(ALL_DISTANCES_FEET) - set([50,32,8]
 base_parameters["window_stride"]=50
 base_parameters["window_length"]=512
 base_parameters["desired_runs"]=[1]
-base_parameters["num_examples_per_class_per_domain"]=100
+base_parameters["num_examples_per_class_per_domain"]=1000
 base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["criteria_for_best"] = "source"
+base_parameters["normalize"] = False
 
 base_parameters["NUM_LOGS_PER_EPOCH"] = 10
 base_parameters["RESULTS_DIR"] = "./results"
@@ -161,7 +162,8 @@ def build_datasets(p:EasyDict)->EasyDict:
                     seed=p.dataset_seed,  
                     max_cache_size=p.max_cache_items,
                     transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
-                    prime_cache=False
+                    prime_cache=False,
+                    normalize=p.normalize
     )
 
     target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
@@ -174,7 +176,8 @@ def build_datasets(p:EasyDict)->EasyDict:
                     seed=p.dataset_seed,  
                     max_cache_size=p.max_cache_items,
                     transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
-                    prime_cache=False
+                    prime_cache=False,
+                    normalize=p.normalize
     )
 
 
