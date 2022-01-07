@@ -6,7 +6,7 @@ import json
 from steves_utils.vanilla_train_eval_test_jig import Vanilla_Train_Eval_Test_Jig
 import pandas as pds
 import matplotlib.patches as mpatches
-
+import textwrap as twp
 
 def do_report(experiment_json_path, loss_curve_path, show_only=False):
 
@@ -63,8 +63,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     ax.set_axis_off() 
     ax.set_title("Parameters")
 
-    t = ax.table(
-        [
+    table_data = [
             ["Experiment Name", experiment["parameters"]["experiment_name"]],
             ["Learning Rate", experiment["parameters"]["lr"]],
             ["Num Epochs", experiment["parameters"]["n_epoch"]],
@@ -75,7 +74,13 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
             ["N per class per domain", str(experiment["parameters"]["num_examples_per_class_per_domain"])],
-        ],
+            ["Classes", experiment["parameters"]["desired_classes"]   ],
+        ]
+
+    table_data = [(e[0], twp.fill(str(e[1]), 90)) for e in table_data]
+
+    t = ax.table(
+        table_data,
         loc="best",
         cellLoc='left',
         colWidths=[0.2,0.55],
@@ -84,7 +89,9 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
     t.set_fontsize(20)
     t.scale(1.5, 2)
 
-
+    c = t.get_celld()[(10,1)]
+    c.set_height( c.get_height() *5 )
+    c.set_fontsize(15)
 
     #
     # Build a damn pandas dataframe for the per domain accuracies and plot it
