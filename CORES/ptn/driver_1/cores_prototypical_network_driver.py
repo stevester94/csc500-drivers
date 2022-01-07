@@ -355,11 +355,6 @@ def evaluate_model_and_create_experiment_summary(
 
     return experiment
 
-    
-
-
-
-
 ###################################
 # Write out the results
 ###################################
