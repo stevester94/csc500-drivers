@@ -9,7 +9,7 @@ from easydict import EasyDict
 import os
 
 
-from cores_prototypical_network_driver import (
+from oracle_prototypical_network_driver import (
     parse_and_validate_parameters,
     set_rng,
     build_network,
@@ -18,40 +18,54 @@ from cores_prototypical_network_driver import (
     train
 )
 
-from steves_utils.CORES.utils import (
-    ALL_NODES,
-    ALL_NODES_MINIMUM_1000_EXAMPLES,
-    node_name_to_id
+from steves_utils.ORACLE.utils_v2 import (
+    ALL_SERIAL_NUMBERS,
+    ALL_DISTANCES_FEET,
+    serial_number_to_id
 )
 
 base_parameters = {}
-base_parameters["experiment_name"] = "MANUAL CORES PTN"
+base_parameters["experiment_name"] = "MANUAL ORACLE PTN"
 base_parameters["lr"] = 0.001
 base_parameters["device"] = "cuda"
+base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["seed"] = 1337
 base_parameters["dataset_seed"] = 1337
-base_parameters["desired_classes_source"] = ALL_NODES_MINIMUM_1000_EXAMPLES
-base_parameters["desired_classes_target"] = ALL_NODES_MINIMUM_1000_EXAMPLES
+base_parameters["desired_classes_source"] = ALL_SERIAL_NUMBERS
+base_parameters["desired_classes_target"] = ALL_SERIAL_NUMBERS
 
-base_parameters["source_domains"] = [1]
-base_parameters["target_domains"] = [2,3,4,5]
+base_parameters["source_domains"] = [38,]
+base_parameters["target_domains"] = [20,44,
+    2,
+    8,
+    14,
+    26,
+    32,
+    50,
+    56,
+    62
+]
 
+base_parameters["window_stride"]=50
+base_parameters["window_length"]=512
+base_parameters["desired_runs"]=[1]
 base_parameters["num_examples_per_class_per_domain_source"]=100
 base_parameters["num_examples_per_class_per_domain_target"]=100
 
-base_parameters["n_shot"] = 2
+base_parameters["n_shot"] = 3
 base_parameters["n_way"]  = len(base_parameters["desired_classes_source"])
-base_parameters["n_query"]  = 1
+base_parameters["n_query"]  = 2
 base_parameters["train_k_factor"] = 1
 base_parameters["val_k_factor"] = 2
 base_parameters["test_k_factor"] = 2
 
+
 base_parameters["n_epoch"] = 3
 
 base_parameters["patience"] = 10
-
 base_parameters["criteria_for_best"] = "target"
+
 
 base_parameters["x_net"] =     [
     {"class": "nnReshape", "kargs": {"shape":[-1, 1, 2, 256]}},
@@ -70,6 +84,9 @@ base_parameters["x_net"] =     [
 
     {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
 ]
+
+# Parameters relevant to results
+# These parameters will basically never need to change
 base_parameters["NUM_LOGS_PER_EPOCH"] = 10
 base_parameters["RESULTS_DIR"] = "./results"
 base_parameters["EXPERIMENT_JSON_PATH"] = os.path.join(base_parameters["RESULTS_DIR"], "experiment.json")
@@ -105,9 +122,9 @@ class Test_Datasets(unittest.TestCase):
         params = EasyDict(params)
 
         for source, target in [
-            ((1,2),(3,4,5)),
-            ((1,),(2,3,4,5)),
-            ((1,2,3,4,5),(1,2,3,4,5)),
+            ([50,32,8],(2,14,44)),
+            ([50,32,62],(2,14,44)),
+            (ALL_DISTANCES_FEET,(2,14,44)),
         ]:
 
             params.source_domains = source
@@ -140,18 +157,19 @@ class Test_Datasets(unittest.TestCase):
         params = EasyDict(params)
 
         for source, target in [
-            (ALL_NODES_MINIMUM_1000_EXAMPLES, ALL_NODES),
-            (ALL_NODES_MINIMUM_1000_EXAMPLES, ALL_NODES_MINIMUM_1000_EXAMPLES),
-            (ALL_NODES, ALL_NODES),
-            (ALL_NODES_MINIMUM_1000_EXAMPLES, list(set(ALL_NODES)-set(ALL_NODES_MINIMUM_1000_EXAMPLES))),
+            (ALL_SERIAL_NUMBERS, ALL_SERIAL_NUMBERS),
+            (ALL_SERIAL_NUMBERS[:5], ALL_SERIAL_NUMBERS[5:]),
+            (ALL_SERIAL_NUMBERS[:5], ALL_SERIAL_NUMBERS[:5]),
+            (ALL_SERIAL_NUMBERS[:1], ALL_SERIAL_NUMBERS[4:5])
         ]:
 
             params.desired_classes_source = source
             params.desired_classes_target = target
             params.n_way                  = len(params.desired_classes_source)
 
-            classes_as_ids_source = [node_name_to_id(y) for y in params.desired_classes_source]
-            classes_as_ids_target = [node_name_to_id(y) for y in params.desired_classes_target]
+
+            classes_as_ids_source = [serial_number_to_id(y) for y in params.desired_classes_source]
+            classes_as_ids_target = [serial_number_to_id(y) for y in params.desired_classes_target]
 
             p = parse_and_validate_parameters(params)
             datasets = prep_datasets(p)
@@ -162,6 +180,7 @@ class Test_Datasets(unittest.TestCase):
                 for u, (support_x, support_y, query_x, query_y, real_classes) in ds:
                     for pseduo_y in torch.cat((support_y, query_y)):
                         seen_classes.add(real_classes[pseduo_y])
+
                 self.assertEqual(
                     seen_classes, set(classes_as_ids_source)
                 )
@@ -181,8 +200,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         params.train_k_factor = 3
         params.val_k_factor   = 3
@@ -262,8 +281,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
             (500, 500, len(params.desired_classes_source), 2, 3, 1),
@@ -324,8 +343,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
             (500, 500, len(params.desired_classes_source), 2, 3, 1),
@@ -392,14 +411,13 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         NUM_ITERATIONS = 5
 
         for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
             (100, 100, len(params.desired_classes_source), 2, 3, 1),
-
         ]:
             params.train_k_factor = k_factor
             params.val_k_factor   = k_factor
@@ -473,13 +491,13 @@ class Test_Datasets(unittest.TestCase):
             self.assertEqual(len(val), 1)
             self.assertEqual(len(test), 1)
             
-    # @unittest.skip  
+    #@unittest.skip 
     def test_iterator_changes_permutation(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         source_train = set()
         source_val = set()
@@ -579,8 +597,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         source_train_hashes = set()
         source_val_hashes = set()
@@ -669,8 +687,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         NUM_ITERATIONS = 3
 
@@ -717,8 +735,8 @@ class Test_Datasets(unittest.TestCase):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
-        params.desired_classes_source = ALL_NODES_MINIMUM_1000_EXAMPLES
-        params.desired_classes_target = ALL_NODES_MINIMUM_1000_EXAMPLES
+        params.desired_classes_source = ALL_SERIAL_NUMBERS
+        params.desired_classes_target = ALL_SERIAL_NUMBERS
 
         for num_examples_per_class_per_domain_source, num_examples_per_class_per_domain_target, n_way, n_shot, n_query, k_factor  in [
             (500, 500, len(params.desired_classes_source), 2, 3, 3),
@@ -784,14 +802,15 @@ class Test_Datasets(unittest.TestCase):
             self.assertAlmostEqual( len(val_hashes) / total, 0.15, places=1)
             self.assertAlmostEqual( len(test_hashes) / total, 0.15, places=1)
 
+    # @unittest.skip
     def test_episode_has_no_repeats(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
 
         for source, target in [
-            ((1,2),(3,4,5)),
-            ((1,),(2,3,4,5)),
-            ((1,2,3,4,5),(1,2,3,4,5)),
+            ([50,32,8],(2,14,44)),
+            ([50,32,62],(2,14,44)),
+            (ALL_DISTANCES_FEET,(2,14,44)),
         ]:
 
             params.source_domains = source

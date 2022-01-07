@@ -216,8 +216,6 @@ def build_network(p:EasyDict):
 # Build the dataset
 ###################################
 def build_datasets(p:EasyDict)->EasyDict:
-    print("Building dataset...")
-
     max_cache_size_per_distance_source=int(p.max_cache_items/2/len(p.source_domains))
     max_cache_size_per_distance_target=int(p.max_cache_items/2/len(p.target_domains))
 
