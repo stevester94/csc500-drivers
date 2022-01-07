@@ -10,6 +10,7 @@ import torch
 
 
 from steves_utils.torch_sequential_builder import build_sequential
+from steves_utils.torch_utils import get_dataset_metrics
 
 
 from steves_models.steves_ptn import Steves_Prototypical_Network
@@ -355,6 +356,7 @@ def evaluate_model_and_create_experiment_summary(
             "per_domain_accuracy": per_domain_accuracy,
         },
         "history": history,
+        "dataset_metrics": get_dataset_metrics(ds, "ptn"),
     }
 
     return experiment

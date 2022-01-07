@@ -11,6 +11,7 @@ from math import floor
 from easydict import EasyDict
 import random
 
+from steves_utils.torch_utils import get_dataset_metrics
 from steves_models.configurable_vanilla import Configurable_Vanilla
 from steves_utils.vanilla_train_eval_test_jig import  Vanilla_Train_Eval_Test_Jig
 from steves_utils.torch_sequential_builder import build_sequential
@@ -330,6 +331,7 @@ def evaluate_model_and_create_experiment_summary(
             "per_domain_accuracy": per_domain_accuracy,
         },
         "history": history,
+        "dataset_metrics": get_dataset_metrics(ds, "cnn"),
     }
 
     return experiment

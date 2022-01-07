@@ -16,7 +16,7 @@ from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
 from steves_utils.iterable_aggregator import Iterable_Aggregator
 from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
 
-from steves_utils.torch_utils import ptn_confusion_by_domain_over_dataloader
+from steves_utils.torch_utils import get_dataset_metrics, ptn_confusion_by_domain_over_dataloader
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
 
 from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
@@ -362,6 +362,7 @@ def evaluate_model_and_create_experiment_summary(
             "per_domain_accuracy": per_domain_accuracy,
         },
         "history": history,
+        "dataset_metrics": get_dataset_metrics(ds, "ptn"),
     }
 
     return experiment
