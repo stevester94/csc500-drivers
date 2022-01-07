@@ -115,6 +115,23 @@ def prep_datasets(p:EasyDict)->dict:
 def numpy_to_hash(n:np.ndarray):
     return hash(n.data.tobytes())
 
+
+def every_x_in_datasets(datasets, original_or_processed, unbatch:bool):
+    if not unbatch:
+        for a in [datasets["source"], datasets["target"]]:
+            for ds in a[original_or_processed].values():
+                for u, support_x, support_y, query_x, query_y, real_classes in ds:
+                    yield support_x
+                    yield query_x
+    if unbatch:
+        for a in [datasets["source"], datasets["target"]]:
+            for ds in a[original_or_processed].values():
+                for support_x, support_y, query_x, query_y, real_classes in ds:
+                    for x in support_x:
+                        yield x
+                    for x in query_x:
+                        yield x
+
 class Test_Datasets(unittest.TestCase):
     # @unittest.skip
     def test_correct_domains(self):
@@ -836,8 +853,48 @@ class Test_Datasets(unittest.TestCase):
                 self.assertEqual( len(episode_hashes), len(set(episode_hashes)))
 
 
+    def test_normalization(self):
+        params = copy.deepcopy(base_parameters)
+        params = EasyDict(params)
+        params.normalize_source = False
+        params.normalize_target = False
+        p = parse_and_validate_parameters(params)
+        datasets = prep_datasets(p)
+
+        
+        non_norm_x = every_x_in_datasets(datasets, "processed", unbatch=True)
+        
+
+        for algo in ["dummy"]:
+            params.normalize_source = algo
+            params.normalize_target = algo
+            p = parse_and_validate_parameters(params)
+            datasets = prep_datasets(p)
+
+            norm_x = every_x_in_datasets(datasets, "processed", unbatch=True)
+            
+
+            for non_norm, norm in zip(non_norm_x, norm_x):
+                self.assertFalse(
+                    np.array_equal( non_norm, norm)
+                )
+
+            for non_norm, norm in zip(non_norm_x, norm_x):
+                self.assertTrue(
+                    np.array_equal( 
+                        norm(non_norm, algo), 
+                        norm
+                    )
+                )
+
+
 import sys
-if len(sys.argv) > 1:
+if len(sys.argv) > 1 and sys.argv[1] == "limited":
+    suite = unittest.TestSuite()
+    suite.addTest(Test_Datasets("test_normalization"))
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
+elif len(sys.argv) > 1:
     Test_Datasets().test_reproducability()
 else:
     unittest.main()
