@@ -15,6 +15,7 @@ from steves_utils.lazy_iterable_wrapper import Lazy_Iterable_Wrapper
 from steves_utils.iterable_aggregator import Iterable_Aggregator
 from steves_utils.torch_utils import ptn_confusion_by_domain_over_dataloader
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
+from steves_utils.PTN.utils import independent_accuracy_assesment
 
 from steves_utils.CORES.utils import (
     ALL_NODES,
@@ -49,9 +50,9 @@ base_parameters["target_domains"] = [2,3,4,5]
 base_parameters["num_examples_per_class_per_domain_source"]=100
 base_parameters["num_examples_per_class_per_domain_target"]=100
 
-base_parameters["n_shot"] = 2
+base_parameters["n_shot"] = 3
 base_parameters["n_way"]  = len(base_parameters["desired_classes_source"])
-base_parameters["n_query"]  = 1
+base_parameters["n_query"]  = 2
 base_parameters["train_k_factor"] = 1
 base_parameters["val_k_factor"] = 2
 base_parameters["test_k_factor"] = 2
@@ -310,9 +311,9 @@ def evaluate_model_and_create_experiment_summary(
     total_experiment_time_secs,
     ds:EasyDict
     )->dict:
+
     source_test_label_accuracy, source_test_label_loss = jig.test(ds.source.processed.test)
     target_test_label_accuracy, target_test_label_loss = jig.test(ds.target.processed.test)
-
     source_val_label_accuracy, source_val_label_loss = jig.test(ds.source.processed.val)
     target_val_label_accuracy, target_val_label_loss = jig.test(ds.target.processed.val)
 
@@ -331,6 +332,17 @@ def evaluate_model_and_create_experiment_summary(
             "accuracy": accuracy,
             "source?": domain in p.source_domains
         }
+
+    # Do an independent accuracy assesment JUST TO BE SURE!
+    _source_test_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.test)
+    _target_test_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.test)
+    _source_val_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.val)
+    _target_val_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.val)
+
+    assert(_source_test_label_accuracy == source_test_label_accuracy)
+    assert(_target_test_label_accuracy == target_test_label_accuracy)
+    assert(_source_val_label_accuracy == source_val_label_accuracy)
+    assert(_target_val_label_accuracy == target_val_label_accuracy)
 
 
     experiment = {
@@ -388,6 +400,7 @@ if __name__ == "__main__":
     x_net = build_network(p)
     datasets = build_datasets(p)
     model, opt = build_model(p)
+
     jig = train(
         p,
         model=model,

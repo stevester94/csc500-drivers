@@ -14,6 +14,7 @@ from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
 from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.torch_utils import get_dataset_metrics, ptn_confusion_by_domain_over_dataloader
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
+from steves_utils.PTN.utils import independent_accuracy_assesment
 
 from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
 from steves_utils.ORACLE.utils_v2 import (
@@ -339,6 +340,16 @@ def evaluate_model_and_create_experiment_summary(
             "source?": domain in p.source_domains
         }
 
+    # Do an independent accuracy assesment JUST TO BE SURE!
+    _source_test_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.test)
+    _target_test_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.test)
+    _source_val_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.val)
+    _target_val_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.val)
+
+    assert(_source_test_label_accuracy == source_test_label_accuracy)
+    assert(_target_test_label_accuracy == target_test_label_accuracy)
+    assert(_source_val_label_accuracy == source_val_label_accuracy)
+    assert(_target_val_label_accuracy == target_val_label_accuracy)
 
     experiment = {
         "experiment_name": p.experiment_name,
