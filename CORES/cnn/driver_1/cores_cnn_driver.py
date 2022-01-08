@@ -8,7 +8,7 @@ from easydict import EasyDict
 
 from steves_utils.vanilla_train_eval_test_jig import  Vanilla_Train_Eval_Test_Jig
 
-from steves_utils.torch_utils import get_dataset_metrics
+from steves_utils.torch_utils import get_dataset_metrics, independent_accuracy_assesment
 from steves_models.configurable_vanilla import Configurable_Vanilla
 from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.lazy_map import Lazy_Map
@@ -24,6 +24,7 @@ from steves_utils.CORES.utils import (
 
 from steves_utils.torch_utils import (
     confusion_by_domain_over_dataloader,
+    independent_accuracy_assesment
 )
 
 from steves_utils.utils_v2 import (
@@ -283,6 +284,16 @@ def evaluate_model_and_create_experiment_summary(
             "source?": domain in p.source_domains
         }
 
+    # Do an independent accuracy assesment JUST TO BE SURE!
+    _source_test_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.test)
+    _target_test_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.test)
+    _source_val_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.val)
+    _target_val_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.val)
+
+    assert(_source_test_label_accuracy == source_test_label_accuracy)
+    assert(_target_test_label_accuracy == target_test_label_accuracy)
+    assert(_source_val_label_accuracy == source_val_label_accuracy)
+    assert(_target_val_label_accuracy == target_val_label_accuracy)
 
     ###################################
     # Write out the results

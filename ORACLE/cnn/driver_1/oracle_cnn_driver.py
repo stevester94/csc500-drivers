@@ -22,10 +22,11 @@ from steves_utils.ORACLE.utils_v2 import (
 
 from steves_utils.torch_utils import (
     confusion_by_domain_over_dataloader,
+    independent_accuracy_assesment
 )
 
 from steves_utils.utils_v2 import (
-    per_domain_accuracy_from_confusion
+    per_domain_accuracy_from_confusion,
 )
 
 from do_report import do_report
@@ -303,6 +304,16 @@ def evaluate_model_and_create_experiment_summary(
             "source?": domain in p.source_domains
         }
 
+    # Do an independent accuracy assesment JUST TO BE SURE!
+    _source_test_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.test)
+    _target_test_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.test)
+    _source_val_label_accuracy = independent_accuracy_assesment(model, ds.source.processed.val)
+    _target_val_label_accuracy = independent_accuracy_assesment(model, ds.target.processed.val)
+
+    assert(_source_test_label_accuracy == source_test_label_accuracy)
+    assert(_target_test_label_accuracy == target_test_label_accuracy)
+    assert(_source_val_label_accuracy == source_val_label_accuracy)
+    assert(_target_val_label_accuracy == target_val_label_accuracy)
 
     ###################################
     # Write out the results
