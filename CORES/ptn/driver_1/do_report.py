@@ -82,7 +82,10 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Source Classes (n={})".format(len(experiment["parameters"]["desired_classes_source"])),
                 experiment["parameters"]["desired_classes_source"]   ],
             ["Target Classes (n={})".format(len(experiment["parameters"]["desired_classes_target"])),
-                experiment["parameters"]["desired_classes_target"]   ]
+                experiment["parameters"]["desired_classes_target"]   ],
+
+            ["normalize (source,target)", 
+                (experiment["parameters"]["normalize_source"], experiment["parameters"]["normalize_target"])],
         ]
     
     table_data = [(e[0], twp.fill(str(e[1]), 70)) for e in table_data]

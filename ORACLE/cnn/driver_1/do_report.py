@@ -76,6 +76,8 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["N per class per domain", str(experiment["parameters"]["num_examples_per_class_per_domain"])],
             ["Classes (n={})".format(len(experiment["parameters"]["desired_classes"])),
                 experiment["parameters"]["desired_classes"]   ],
+            ["normalize source", experiment["parameters"]["normalize_source"]],
+            ["normalize target", experiment["parameters"]["normalize_target"]],
         ]
 
     table_data = [(e[0], twp.fill(str(e[1]), 70)) for e in table_data]
