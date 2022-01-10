@@ -276,8 +276,8 @@ def build_datasets(p:EasyDict)->EasyDict:
 ###################################
 # Build the model
 ###################################
-def build_model(p:EasyDict)->tuple:
-    model = Steves_Prototypical_Network(x_net, x_shape=(2,256))
+def build_model(p:EasyDict, network)->tuple:
+    model = Steves_Prototypical_Network(network, x_shape=(2,256))
     optimizer = Adam(params=model.parameters(), lr=p.lr)
     return model, optimizer
 
@@ -309,7 +309,8 @@ def evaluate_model_and_create_experiment_summary(
     p:EasyDict,
     jig:PTN_Train_Eval_Test_Jig,
     total_experiment_time_secs,
-    ds:EasyDict
+    ds:EasyDict,
+    model
     )->dict:
 
     source_test_label_accuracy, source_test_label_loss = jig.test(ds.source.processed.test)
@@ -399,7 +400,7 @@ if __name__ == "__main__":
     set_rng(p)
     x_net = build_network(p)
     datasets = build_datasets(p)
-    model, opt = build_model(p)
+    model, opt = build_model(p, x_net)
 
     jig = train(
         p,

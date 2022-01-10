@@ -7,7 +7,7 @@ import unittest
 import copy
 from easydict import EasyDict
 import os
-
+import time
 
 from cores_prototypical_network_driver import (
     parse_and_validate_parameters,
@@ -15,7 +15,9 @@ from cores_prototypical_network_driver import (
     build_network,
     build_datasets,
     base_parameters,
-    train
+    train,
+    build_model,
+    evaluate_model_and_create_experiment_summary
 )
 
 from steves_utils.CORES.utils import (
@@ -872,10 +874,133 @@ class Test_Datasets(unittest.TestCase):
                 )
 
 
+class Test_Reproducability(unittest.TestCase):
+    def test_reproducability(self):
+        params = copy.deepcopy(base_parameters)
+        params = EasyDict(params)
+        params.n_epoch = 3
+        p = parse_and_validate_parameters(params)
+        torch.set_default_dtype(torch.float64)
+
+        # Run 1
+        start_time_secs = time.time()
+        set_rng(p)
+        x_net = build_network(p)
+        datasets = build_datasets(p)
+        model, opt = build_model(p, x_net)
+        jig = train(
+            p,
+            model=model,
+            optimizer=opt,
+            datasets=datasets
+        )
+        total_experiment_time_secs = time.time() - start_time_secs
+
+        experiment = evaluate_model_and_create_experiment_summary(
+            p,
+            jig=jig,
+            ds=datasets,
+            total_experiment_time_secs=total_experiment_time_secs,
+            model=model,
+        )
+        hist_1 = jig.get_history()
+
+        # Run 2
+        start_time_secs = time.time()
+        set_rng(p)
+        x_net = build_network(p)
+        datasets = build_datasets(p)
+        model, opt = build_model(p, x_net)
+        jig = train(
+            p,
+            model=model,
+            optimizer=opt,
+            datasets=datasets
+        )
+        total_experiment_time_secs = time.time() - start_time_secs
+
+        experiment = evaluate_model_and_create_experiment_summary(
+            p,
+            jig=jig,
+            ds=datasets,
+            total_experiment_time_secs=total_experiment_time_secs,
+            model=model,
+        )
+        hist_2 = jig.get_history()
+
+
+        self.assertEqual(
+            hist_1,
+            hist_2
+        )
+
+    @unittest.expectedFailure
+    def test_nonreproducability(self):
+        params = copy.deepcopy(base_parameters)
+        params = EasyDict(params)
+        params.n_epoch = 3
+        p = parse_and_validate_parameters(params)
+
+        # Run 1
+        start_time_secs = time.time()
+        # set_rng(p)
+        x_net = build_network(p)
+        datasets = build_datasets(p)
+        model, opt = build_model(p, x_net)
+        jig = train(
+            p,
+            model=model,
+            optimizer=opt,
+            datasets=datasets
+        )
+        total_experiment_time_secs = time.time() - start_time_secs
+
+        experiment = evaluate_model_and_create_experiment_summary(
+            p,
+            jig=jig,
+            ds=datasets,
+            total_experiment_time_secs=total_experiment_time_secs,
+            model=model,
+        )
+        hist_1 = jig.get_history()
+
+        # Run 2
+        start_time_secs = time.time()
+        # set_rng(p)
+        x_net = build_network(p)
+        datasets = build_datasets(p)
+        model, opt = build_model(p, x_net)
+        jig = train(
+            p,
+            model=model,
+            optimizer=opt,
+            datasets=datasets
+        )
+        total_experiment_time_secs = time.time() - start_time_secs
+
+        experiment = evaluate_model_and_create_experiment_summary(
+            p,
+            jig=jig,
+            ds=datasets,
+            total_experiment_time_secs=total_experiment_time_secs,
+            model=model,
+        )
+        hist_2 = jig.get_history()
+
+
+        self.assertEqual(
+            hist_1,
+            hist_2
+        )
+
+                    
+        
+
 import sys
 if len(sys.argv) > 1 and sys.argv[1] == "limited":
     suite = unittest.TestSuite()
-    suite.addTest(Test_Datasets("test_normalization"))
+    suite.addTest(Test_Reproducability("test_reproducability"))
+    suite.addTest(Test_Reproducability("test_nonreproducability"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
 elif len(sys.argv) > 1:

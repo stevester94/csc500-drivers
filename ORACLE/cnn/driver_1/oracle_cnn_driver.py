@@ -243,10 +243,10 @@ def build_datasets(p:EasyDict)->EasyDict:
 ###################################
 # Build the model
 ###################################
-def build_model(p:EasyDict)->tuple:
+def build_model(p:EasyDict, model)->tuple:
 
     return Configurable_Vanilla(
-        x_net=x_net,
+        x_net=model,
         label_loss_object=torch.nn.NLLLoss(),
         learning_rate=p.lr
     )
@@ -283,7 +283,8 @@ def evaluate_model_and_create_experiment_summary(
     p:EasyDict,
     jig:Vanilla_Train_Eval_Test_Jig,
     total_experiment_time_secs,
-    ds:EasyDict
+    ds:EasyDict,
+    model
     )->dict:
     source_test_label_accuracy, source_test_label_loss = jig.test(ds.source.processed.test)
     target_test_label_accuracy, target_test_label_loss = jig.test(ds.target.processed.test)
@@ -324,7 +325,7 @@ def evaluate_model_and_create_experiment_summary(
 
     experiment = {
         "experiment_name": p.experiment_name,
-        "parameters": parameters,
+        "parameters": p,
         "results": {
             "source_test_label_accuracy": source_test_label_accuracy,
             "source_test_label_loss": source_test_label_loss,
@@ -373,7 +374,7 @@ if __name__ == "__main__":
     set_rng(p)
     x_net = build_network(p)
     datasets = build_datasets(p)
-    model = build_model(p)
+    model = build_model(p, x_net)
     jig = train(
         p,
         model=model,
@@ -386,6 +387,7 @@ if __name__ == "__main__":
         jig=jig,
         ds=datasets,
         total_experiment_time_secs=total_experiment_time_secs,
+        model=model,
     )
 
     print("Source Test Label Accuracy:", experiment["results"]["source_test_label_accuracy"], "Target Test Label Accuracy:", experiment["results"]["target_test_label_accuracy"])
