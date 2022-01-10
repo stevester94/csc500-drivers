@@ -415,6 +415,7 @@ if __name__ == "__main__":
         jig=jig,
         ds=datasets,
         total_experiment_time_secs=total_experiment_time_secs,
+        model=model
     )
 
     print("Source Test Label Accuracy:", experiment["results"]["source_test_label_accuracy"], "Target Test Label Accuracy:", experiment["results"]["target_test_label_accuracy"])
