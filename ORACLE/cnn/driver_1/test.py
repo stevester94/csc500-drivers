@@ -88,7 +88,6 @@ def prep_datasets(p:EasyDict)->dict:
         },
     }
     """
-    torch.set_default_dtype(torch.float64)
     set_rng(p)
     datasets = build_datasets(p)
 
@@ -160,7 +159,7 @@ class Test_Datasets(unittest.TestCase):
 
             params.desired_classes = desired_classes
 
-            classes_as_ids = [serial_number_to_id(y) for y in params.desired_classes]
+            classes_as_ids = [params.desired_classes.index(y) for y in params.desired_classes]
 
             p = parse_and_validate_parameters(params)
             datasets = prep_datasets(p)

@@ -940,6 +940,7 @@ class Test_Reproducability(unittest.TestCase):
         params = EasyDict(params)
         params.n_epoch = 3
         p = parse_and_validate_parameters(params)
+        torch.set_default_dtype(torch.float64)
 
         # Run 1
         start_time_secs = time.time()
