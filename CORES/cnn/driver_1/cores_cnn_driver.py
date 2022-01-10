@@ -45,7 +45,8 @@ base_parameters["device"] = "cuda"
 
 base_parameters["seed"] = 1337
 base_parameters["dataset_seed"] = 1337
-base_parameters["desired_classes"] = ALL_NODES
+base_parameters["desired_classes"] = ALL_NODES_MINIMUM_1000_EXAMPLES
+# base_parameters["desired_classes"] = ALL_NODES
 
 base_parameters["source_domains"] = [1]
 base_parameters["target_domains"] = [2,3,4,5]
@@ -54,7 +55,7 @@ base_parameters["num_examples_per_class_per_domain"]=100
 
 base_parameters["batch_size"]=128
 
-base_parameters["n_epoch"] = 3
+base_parameters["n_epoch"] = 10
 
 base_parameters["patience"] = 10
 
@@ -137,12 +138,16 @@ def build_network(p:EasyDict):
 # Build the dataset
 ###################################
 def build_datasets(p:EasyDict)->EasyDict:
+    def class_to_pseudo_class(p:EasyDict, original_class):
+        pseudo_class = p.desired_classes.index(original_class)
+        return pseudo_class
+
     source_ds = CORES_Torch.CORES_Torch_Dataset(
                     nodes_to_get=p.desired_classes,
                     days_to_get=p.source_domains,
                     num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,  
-                    transform_func=lambda x: (x["IQ"], node_name_to_id(x["node_name"]), x["day"]),
+                    transform_func=lambda x, params=p: (x["IQ"], class_to_pseudo_class(params, x["node_name"]), x["day"]),
                     normalize=p.normalize_source
     )
 
@@ -151,7 +156,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     days_to_get=p.target_domains,
                     num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,
-                    transform_func=lambda x: (x["IQ"], node_name_to_id(x["node_name"]), x["day"]),
+                    transform_func=lambda x, params=p: (x["IQ"], class_to_pseudo_class(params, x["node_name"]), x["day"]),
                     normalize=p.normalize_target
     )
 

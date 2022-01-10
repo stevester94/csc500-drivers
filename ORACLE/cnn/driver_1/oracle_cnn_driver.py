@@ -148,8 +148,11 @@ def build_datasets(p:EasyDict)->EasyDict:
         },
     }
     """
-    # The num_examples_per_device looks a little weird because we pull N examples randomly from the desired domains
-    # So this is roughly correct
+
+    def class_to_pseudo_class(p:EasyDict, original_class):
+        pseudo_class = p.desired_classes.index(original_class)
+        return pseudo_class
+
     source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
                     desired_serial_numbers=p.desired_classes,
                     desired_distances=p.source_domains,
@@ -159,7 +162,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,  
                     max_cache_size=p.max_cache_items,
-                    transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
+                    transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
                     prime_cache=False,
                     normalize=p.normalize_source
     )
@@ -173,7 +176,7 @@ def build_datasets(p:EasyDict)->EasyDict:
                     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
                     seed=p.dataset_seed,  
                     max_cache_size=p.max_cache_items,
-                    transform_func=lambda x: (x["iq"], serial_number_to_id(x["serial_number"]), x["distance_ft"]),
+                    transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
                     prime_cache=False,
                     normalize=p.normalize_target
     )
