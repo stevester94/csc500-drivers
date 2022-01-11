@@ -33,8 +33,8 @@ base_parameters["device"] = "cuda"
 
 base_parameters["seed"] = 1337
 base_parameters["dataset_seed"] = 1337
-base_parameters["desired_classes_source"] = ALL_NODES_MINIMUM_1000_EXAMPLES
-base_parameters["desired_classes_target"] = ALL_NODES_MINIMUM_1000_EXAMPLES
+base_parameters["desired_classes_source"] = ALL_NODES
+base_parameters["desired_classes_target"] = ALL_NODES
 
 base_parameters["source_domains"] = [1]
 base_parameters["target_domains"] = [2,3,4,5]
@@ -42,9 +42,9 @@ base_parameters["target_domains"] = [2,3,4,5]
 base_parameters["num_examples_per_class_per_domain_source"]=100
 base_parameters["num_examples_per_class_per_domain_target"]=100
 
-base_parameters["n_shot"] = 2
+base_parameters["n_shot"] = 3
 base_parameters["n_way"]  = len(base_parameters["desired_classes_source"])
-base_parameters["n_query"]  = 1
+base_parameters["n_query"]  = 2
 base_parameters["train_k_factor"] = 1
 base_parameters["val_k_factor"] = 2
 base_parameters["test_k_factor"] = 2
@@ -124,6 +124,8 @@ class Test_Datasets(unittest.TestCase):
     def test_correct_domains(self):
         params = copy.deepcopy(base_parameters)
         params = EasyDict(params)
+        params.num_examples_per_class_per_domain_source=100
+        params.num_examples_per_class_per_domain_target=100
 
         for source, target in [
             ((1,2),(3,4,5)),
@@ -1000,8 +1002,7 @@ class Test_Reproducability(unittest.TestCase):
 import sys
 if len(sys.argv) > 1 and sys.argv[1] == "limited":
     suite = unittest.TestSuite()
-    suite.addTest(Test_Reproducability("test_reproducability"))
-    suite.addTest(Test_Reproducability("test_nonreproducability"))
+    suite.addTest(Test_Datasets("test_correct_domains"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
 elif len(sys.argv) > 1:
