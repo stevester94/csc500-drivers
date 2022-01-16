@@ -44,7 +44,6 @@ base_parameters["lr"] = 0.001
 base_parameters["device"] = "cuda"
 
 base_parameters["seed"] = 1337
-base_parameters["dataset_seed"] = 1337
 base_parameters["desired_classes"] = ALL_NODES_MINIMUM_1000_EXAMPLES
 # base_parameters["desired_classes"] = ALL_NODES
 

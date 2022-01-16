@@ -30,10 +30,8 @@ base_parameters = {}
 base_parameters["experiment_name"] = "MANUAL ORACLE PTN"
 base_parameters["lr"] = 0.001
 base_parameters["device"] = "cuda"
-base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["seed"] = 1337
-base_parameters["dataset_seed"] = 1337
 base_parameters["desired_classes_source"] = ALL_SERIAL_NUMBERS
 base_parameters["desired_classes_target"] = ALL_SERIAL_NUMBERS
 
@@ -49,9 +47,6 @@ base_parameters["target_domains"] = [20,44,
     62
 ]
 
-base_parameters["window_stride"]=50
-base_parameters["window_length"]=512
-base_parameters["desired_runs"]=[1]
 base_parameters["num_examples_per_class_per_domain_source"]=100
 base_parameters["num_examples_per_class_per_domain_target"]=100
 
@@ -243,44 +238,6 @@ def build_datasets(p:EasyDict)->EasyDict:
         normalize_type=p.normalize_target,
     )
 
-
-    # source_original_train, source_original_val, source_original_test = build_ORACLE_episodic_iterable(
-    #     desired_serial_numbers=p.desired_classes_source,
-    #     desired_distances=p.source_domains,
-    #     desired_runs=p.desired_runs,
-    #     window_length=p.window_length,
-    #     window_stride=p.window_stride,
-    #     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_source,
-    #     iterator_seed=p.seed,
-    #     dataset_seed=p.dataset_seed,
-    #     max_cache_size_per_distance=max_cache_size_per_distance_source,
-    #     n_way=p.n_way,
-    #     n_shot=p.n_shot,
-    #     n_query=p.n_query,
-    #     train_k_factor=p.train_k_factor,
-    #     val_k_factor=p.val_k_factor,
-    #     test_k_factor=p.test_k_factor,
-    #     normalize=p.normalize_source
-    # )
-
-    # target_original_train, target_original_val, target_original_test = build_ORACLE_episodic_iterable(
-    #     desired_serial_numbers=p.desired_classes_target,
-    #     desired_distances=p.target_domains,
-    #     desired_runs=p.desired_runs,
-    #     window_length=p.window_length,
-    #     window_stride=p.window_stride,
-    #     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_target,
-    #     iterator_seed=p.seed,
-    #     dataset_seed=p.dataset_seed,
-    #     max_cache_size_per_distance=max_cache_size_per_distance_target,
-    #     n_way=p.n_way,
-    #     n_shot=p.n_shot,
-    #     n_query=p.n_query,
-    #     train_k_factor=p.train_k_factor,
-    #     val_k_factor=p.val_k_factor,
-    #     test_k_factor=p.test_k_factor,
-    #     normalize=p.normalize_target
-    # )
 
     # For CNN We only use X and Y. And we only train on the source.
     # Properly form the data using a transform lambda and Lazy_Iterable_Wrapper. Finally wrap them in a dataloader

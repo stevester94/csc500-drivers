@@ -35,7 +35,6 @@ base_parameters["n_epoch"] = 3
 base_parameters["batch_size"] = 256
 base_parameters["patience"] = 10
 base_parameters["seed"] = 1337
-base_parameters["dataset_seed"] = 1337
 base_parameters["device"] = "cuda"
 base_parameters["desired_classes"] = ALL_SERIAL_NUMBERS
 base_parameters["source_domains"] = [50,32,8]
@@ -391,7 +390,6 @@ class Test_Datasets(unittest.TestCase):
             params.num_examples_per_class_per_domain = 100
             
             params.seed = seed
-            params.dataset_seed = dataset_seed
 
 
             p = parse_and_validate_parameters(params)
@@ -439,79 +437,6 @@ class Test_Datasets(unittest.TestCase):
         self.assertEqual(  len(target_test), len(combos)   )
         self.assertEqual(  len(target_train), len(combos)  )
 
-
-    # @unittest.skip
-    def test_dataset_seed(self):
-        params = copy.deepcopy(base_parameters)
-        params = EasyDict(params)
-
-        params.desired_classes = ALL_SERIAL_NUMBERS
-
-        source_train = set()
-        source_val = set()
-        source_test = set()
-
-        target_val = set()
-        target_test = set()
-        target_train = set()
-
-        combos = [
-            (1337, 420),
-            (54321, 420),
-            (12332546, 420),
-        ]
-
-        for seed, dataset_seed  in combos:
-            params.num_examples_per_class_per_domain = 100
-            
-            params.seed = seed
-            params.dataset_seed = dataset_seed
-
-
-            p = parse_and_validate_parameters(params)
-            datasets = prep_datasets(p)
-
-            # source
-            train_hashes = []
-            for x,y,u in datasets.source.original.train:                   
-                train_hashes.append(numpy_to_hash(x))
-
-            val_hashes = []
-            for x,y,u in datasets.source.original.val:
-                val_hashes.append(numpy_to_hash(x))
-
-            test_hashes = []
-            for x,y,u in datasets.source.original.test:
-                test_hashes.append(numpy_to_hash(x))
-            
-            source_train.add(hash(tuple(train_hashes)))
-            source_val.add(hash(tuple(val_hashes)))
-            source_test.add(hash(tuple(test_hashes)))
-
-            # target
-            train_hashes = []
-            for x,y,u in datasets.target.original.train:                   
-                train_hashes.append(numpy_to_hash(x))
-
-            val_hashes = []
-            for x,y,u in datasets.target.original.val:
-                val_hashes.append(numpy_to_hash(x))
-
-            test_hashes = []
-            for x,y,u in datasets.target.original.test:
-                test_hashes.append(numpy_to_hash(x))
-            
-            target_train.add(hash(tuple(train_hashes)))
-            target_val.add(hash(tuple(val_hashes)))
-            target_test.add(hash(tuple(test_hashes)))
-
-
-        self.assertEqual(  len(source_train),  1)
-        self.assertEqual(  len(source_val),  1)
-        self.assertEqual(  len(source_test),  1)
-        self.assertEqual(  len(target_val),  1)
-        self.assertEqual(  len(target_test),  1)
-        self.assertEqual(  len(target_train),  1)
 
     # @unittest.skip
     def test_reproducability(self):

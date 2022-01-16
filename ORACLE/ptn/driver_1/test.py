@@ -30,10 +30,8 @@ base_parameters = {}
 base_parameters["experiment_name"] = "MANUAL ORACLE PTN"
 base_parameters["lr"] = 0.001
 base_parameters["device"] = "cuda"
-base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["seed"] = 1337
-base_parameters["dataset_seed"] = 1337
 base_parameters["desired_classes_source"] = ALL_SERIAL_NUMBERS
 base_parameters["desired_classes_target"] = ALL_SERIAL_NUMBERS
 
@@ -47,9 +45,6 @@ base_parameters["target_domains"] = [
     62
 ]
 
-base_parameters["window_stride"]=50
-base_parameters["window_length"]=512
-base_parameters["desired_runs"]=[1]
 base_parameters["num_examples_per_class_per_domain_source"]=100
 base_parameters["num_examples_per_class_per_domain_target"]=100
 
@@ -549,7 +544,6 @@ class Test_Datasets(unittest.TestCase):
             params.n_query = n_query
 
             params.seed = seed
-            params.dataset_seed = dataset_seed
 
 
             p = parse_and_validate_parameters(params)
@@ -605,100 +599,6 @@ class Test_Datasets(unittest.TestCase):
         self.assertEqual(  len(target_test), len(combos)   )
         self.assertEqual(  len(target_train), len(combos)  )
 
-    # @unittest.skip
-    def test_dataset_seed(self):
-        """
-        Again, a little messy because we cant reliably extract every possible example from our episodes,
-        however, if these sets are all disjoint after several different iteration, then its highly likely
-        the dataset split is stable
-        """
-        params = copy.deepcopy(base_parameters)
-        params = EasyDict(params)
-
-        params.desired_classes_source = ALL_SERIAL_NUMBERS
-        params.desired_classes_target = ALL_SERIAL_NUMBERS
-
-        source_train_hashes = set()
-        source_val_hashes = set()
-        source_test_hashes = set()
-
-        target_val_hashes = set()
-        target_test_hashes = set()
-        target_train_hashes = set()
-
-        combos = [
-            (1337, 420),
-            (54321, 420),
-            (12332546, 420),
-        ]
-
-        for seed, dataset_seed  in combos:
-            num_examples_per_class_per_domain_source= 100
-            num_examples_per_class_per_domain_target= 100
-            n_way= len(params.desired_classes_source)
-            n_shot= 2
-            n_query= 3
-            k_factor= 100
-
-            params.train_k_factor = k_factor
-            params.val_k_factor   = k_factor
-            params.test_k_factor  = k_factor
-            params.num_examples_per_class_per_domain_source = num_examples_per_class_per_domain_source
-            params.num_examples_per_class_per_domain_target = num_examples_per_class_per_domain_target
-            params.n_shot = n_shot
-            params.n_way = n_way
-            params.n_query = n_query
-
-            params.seed = seed
-            params.dataset_seed = dataset_seed
-
-
-            p = parse_and_validate_parameters(params)
-            datasets = prep_datasets(p)
-
-
-
-            # source
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.train:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: source_train_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: source_train_hashes.add(h)
-
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.val:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: source_val_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: source_val_hashes.add(h)
-
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.source.original.test:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: source_test_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: source_test_hashes.add(h)
-                    
-
-            # target
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.train:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: target_train_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: target_train_hashes.add(h)
-
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.val:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: target_val_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: target_val_hashes.add(h)
-
-            for u, (support_x, support_y, query_x, query_y, real_classes) in datasets.target.original.test:                   
-                for h in [numpy_to_hash(x.numpy()) for x in support_x]: target_test_hashes.add(h)
-                for h in [numpy_to_hash(x.numpy()) for x in query_x]: target_test_hashes.add(h)
-            
-
-        all_sets = [
-            source_train_hashes,
-            source_val_hashes,
-            source_test_hashes,
-            target_val_hashes,
-            target_test_hashes,
-            target_train_hashes,
-        ]
-
-        from itertools import combinations
-
-        for a,b in combinations(all_sets, 2):
-            self.assertTrue(a.isdisjoint(b))
 
     # @unittest.skip
     def test_reproducability(self):
