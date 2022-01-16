@@ -13,8 +13,8 @@ from steves_models.configurable_vanilla import Configurable_Vanilla
 from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.lazy_map import Lazy_Map
 from steves_utils.sequence_aggregator import Sequence_Aggregator
+from steves_utils.simple_datasets.CORES.dataset_accessor import get_datasets
 
-import steves_utils.CORES.torch_utils as CORES_Torch
 from steves_utils.CORES.utils import (
     ALL_NODES,
     ALL_NODES_MINIMUM_1000_EXAMPLES,
@@ -138,45 +138,20 @@ def build_network(p:EasyDict):
 # Build the dataset
 ###################################
 def build_datasets(p:EasyDict)->EasyDict:
-    def class_to_pseudo_class(p:EasyDict, original_class):
-        pseudo_class = p.desired_classes.index(original_class)
-        return pseudo_class
-
-    source_ds = CORES_Torch.CORES_Torch_Dataset(
-                    nodes_to_get=p.desired_classes,
-                    days_to_get=p.source_domains,
-                    num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
-                    seed=p.dataset_seed,  
-                    transform_func=lambda x, params=p: (x["IQ"], class_to_pseudo_class(params, x["node_name"]), x["day"]),
-                    normalize=p.normalize_source
-    )
-
-    target_ds = CORES_Torch.CORES_Torch_Dataset(
-                    nodes_to_get=p.desired_classes,
-                    days_to_get=p.target_domains,
-                    num_examples_per_node_per_day=p.num_examples_per_class_per_domain,
-                    seed=p.dataset_seed,
-                    transform_func=lambda x, params=p: (x["IQ"], class_to_pseudo_class(params, x["node_name"]), x["day"]),
-                    normalize=p.normalize_target
+    source_original_train, source_original_val, source_original_test = get_datasets(
+        nodes=p.desired_classes,
+        days=p.source_domains,
+        num_examples_per_day_per_node=p.num_examples_per_class_per_domain,
+        normalize_type=p.normalize_source,
     )
 
 
-
-
-
-    # Split our source and target datasets into train val and test
-    source_train_len = floor(len(source_ds)*0.7)
-    source_val_len   = floor(len(source_ds)*0.15)
-    source_test_len  = len(source_ds) - source_train_len - source_val_len
-    source_original_train, source_original_val, source_original_test = torch.utils.data.random_split(
-        source_ds, [source_train_len, source_val_len, source_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
-
-
-    target_train_len = floor(len(target_ds)*0.7)
-    target_val_len   = floor(len(target_ds)*0.15)
-    target_test_len  = len(target_ds) - target_train_len - target_val_len
-    target_original_train, target_original_val, target_original_test = torch.utils.data.random_split(
-        target_ds, [target_train_len, target_val_len, target_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
+    target_original_train, target_original_val, target_original_test = get_datasets(
+        nodes=p.desired_classes,
+        days=p.target_domains,
+        num_examples_per_day_per_node=p.num_examples_per_class_per_domain,
+        normalize_type=p.normalize_source,
+    )
 
     # For CNN We only use X and Y. And we only train on the source.
     # Properly form the data using a transform lambda and Lazy_Map. Finally wrap them in a dataloader
