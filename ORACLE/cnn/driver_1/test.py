@@ -761,8 +761,8 @@ class Test_Reproducability(unittest.TestCase):
 import sys
 if len(sys.argv) > 1 and sys.argv[1] == "limited":
     suite = unittest.TestSuite()
-    suite.addTest(Test_Reproducability("test_reproducability"))
-    suite.addTest(Test_Reproducability("test_nonreproducability"))
+    suite.addTest(Test_Datasets("test_normalization"))
+    # suite.addTest(Test_Reproducability("test_nonreproducability"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
 elif len(sys.argv) > 1:

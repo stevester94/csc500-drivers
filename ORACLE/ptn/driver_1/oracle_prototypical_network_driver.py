@@ -16,7 +16,7 @@ from steves_utils.torch_utils import get_dataset_metrics, ptn_confusion_by_domai
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
 from steves_utils.PTN.utils import independent_accuracy_assesment
 
-from steves_utils.ORACLE.torch_utils import build_ORACLE_episodic_iterable
+from steves_utils.simple_datasets.ORACLE.episodic_dataset_accessor import get_episodic_dataloaders
 from steves_utils.ORACLE.utils_v2 import (
     ALL_DISTANCES_FEET,
     ALL_SERIAL_NUMBERS,
@@ -215,46 +215,72 @@ def build_network(p:EasyDict):
 # Build the dataset
 ###################################
 def build_datasets(p:EasyDict)->EasyDict:
-    max_cache_size_per_distance_source=int(p.max_cache_items/2/len(p.source_domains))
-    max_cache_size_per_distance_target=int(p.max_cache_items/2/len(p.target_domains))
+    # max_cache_size_per_distance_source=int(p.max_cache_items/2/len(p.source_domains))
+    # max_cache_size_per_distance_target=int(p.max_cache_items/2/len(p.target_domains))
 
-    source_original_train, source_original_val, source_original_test = build_ORACLE_episodic_iterable(
-        desired_serial_numbers=p.desired_classes_source,
-        desired_distances=p.source_domains,
-        desired_runs=p.desired_runs,
-        window_length=p.window_length,
-        window_stride=p.window_stride,
-        num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_source,
+
+    source_original_train, source_original_val, source_original_test = get_episodic_dataloaders(
+        serial_numbers=p.desired_classes_source,
+        distances=p.source_domains,
+        num_examples_per_distance_per_serial=p.num_examples_per_class_per_domain_source,
         iterator_seed=p.seed,
-        dataset_seed=p.dataset_seed,
-        max_cache_size_per_distance=max_cache_size_per_distance_source,
-        n_way=p.n_way,
         n_shot=p.n_shot,
+        n_way=p.n_way,
         n_query=p.n_query,
-        train_k_factor=p.train_k_factor,
-        val_k_factor=p.val_k_factor,
-        test_k_factor=p.test_k_factor,
-        normalize=p.normalize_source
+        train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
+        normalize_type=p.normalize_source,
     )
 
-    target_original_train, target_original_val, target_original_test = build_ORACLE_episodic_iterable(
-        desired_serial_numbers=p.desired_classes_target,
-        desired_distances=p.target_domains,
-        desired_runs=p.desired_runs,
-        window_length=p.window_length,
-        window_stride=p.window_stride,
-        num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_target,
+    target_original_train, target_original_val, target_original_test = get_episodic_dataloaders(
+        serial_numbers=p.desired_classes_target,
+        distances=p.target_domains,
+        num_examples_per_distance_per_serial=p.num_examples_per_class_per_domain_target,
         iterator_seed=p.seed,
-        dataset_seed=p.dataset_seed,
-        max_cache_size_per_distance=max_cache_size_per_distance_target,
-        n_way=p.n_way,
         n_shot=p.n_shot,
+        n_way=p.n_way,
         n_query=p.n_query,
-        train_k_factor=p.train_k_factor,
-        val_k_factor=p.val_k_factor,
-        test_k_factor=p.test_k_factor,
-        normalize=p.normalize_target
+        train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
+        normalize_type=p.normalize_target,
     )
+
+
+    # source_original_train, source_original_val, source_original_test = build_ORACLE_episodic_iterable(
+    #     desired_serial_numbers=p.desired_classes_source,
+    #     desired_distances=p.source_domains,
+    #     desired_runs=p.desired_runs,
+    #     window_length=p.window_length,
+    #     window_stride=p.window_stride,
+    #     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_source,
+    #     iterator_seed=p.seed,
+    #     dataset_seed=p.dataset_seed,
+    #     max_cache_size_per_distance=max_cache_size_per_distance_source,
+    #     n_way=p.n_way,
+    #     n_shot=p.n_shot,
+    #     n_query=p.n_query,
+    #     train_k_factor=p.train_k_factor,
+    #     val_k_factor=p.val_k_factor,
+    #     test_k_factor=p.test_k_factor,
+    #     normalize=p.normalize_source
+    # )
+
+    # target_original_train, target_original_val, target_original_test = build_ORACLE_episodic_iterable(
+    #     desired_serial_numbers=p.desired_classes_target,
+    #     desired_distances=p.target_domains,
+    #     desired_runs=p.desired_runs,
+    #     window_length=p.window_length,
+    #     window_stride=p.window_stride,
+    #     num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain_target,
+    #     iterator_seed=p.seed,
+    #     dataset_seed=p.dataset_seed,
+    #     max_cache_size_per_distance=max_cache_size_per_distance_target,
+    #     n_way=p.n_way,
+    #     n_shot=p.n_shot,
+    #     n_query=p.n_query,
+    #     train_k_factor=p.train_k_factor,
+    #     val_k_factor=p.val_k_factor,
+    #     test_k_factor=p.test_k_factor,
+    #     normalize=p.normalize_target
+    # )
 
     # For CNN We only use X and Y. And we only train on the source.
     # Properly form the data using a transform lambda and Lazy_Iterable_Wrapper. Finally wrap them in a dataloader

@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import os, json, sys, time, random
+from pkgutil import extend_path
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -17,9 +18,10 @@ from steves_utils.torch_utils import ptn_confusion_by_domain_over_dataloader
 from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
 from steves_utils.PTN.utils import independent_accuracy_assesment
 
+from steves_utils.simple_datasets.CORES.episodic_dataset_accessor import get_episodic_dataloaders
+
 from steves_utils.CORES.utils import (
     ALL_NODES,
-    build_CORES_episodic_iterable,
     ALL_NODES_MINIMUM_1000_EXAMPLES,
     ALL_DAYS
 )
@@ -39,10 +41,9 @@ base_parameters["lr"] = 0.001
 base_parameters["device"] = "cuda"
 
 base_parameters["seed"] = 1337
-base_parameters["dataset_seed"] = 1337
 base_parameters["desired_classes_source"] = ALL_NODES_MINIMUM_1000_EXAMPLES
 # base_parameters["desired_classes_target"] = list(set(ALL_NODES) - set(ALL_NODES_MINIMUM_1000_EXAMPLES))
-base_parameters["desired_classes_target"] = ALL_NODES_MINIMUM_1000_EXAMPLES
+base_parameters["desired_classes_target"] = ALL_NODES
 
 base_parameters["source_domains"] = [1]
 base_parameters["target_domains"] = [2,3,4,5]
@@ -215,34 +216,29 @@ def build_datasets(p:EasyDict)->EasyDict:
         },
     }
     """
-    source_original_train, source_original_val, source_original_test = build_CORES_episodic_iterable(
-        days_to_get=p.source_domains,
-        n_query=p.n_query,
-        n_way=p.n_way,
-        n_shot=p.n_shot,
-        nodes_to_get=p.desired_classes_source,
-        num_examples_per_node_per_day=p.num_examples_per_class_per_domain_source,
-        dataset_seed=p.dataset_seed,
-        iterator_seed=p.seed,
-        train_k_factor=p.train_k_factor,
-        val_k_factor=p.val_k_factor,
-        test_k_factor=p.test_k_factor,
-        normalize=p.normalize_source
-    ) 
 
-    target_original_train, target_original_val, target_original_test = build_CORES_episodic_iterable(
-        days_to_get=p.target_domains,
-        n_query=p.n_query,
-        n_way=p.n_way,
-        n_shot=p.n_shot,
-        nodes_to_get=p.desired_classes_target,
-        num_examples_per_node_per_day=p.num_examples_per_class_per_domain_target,
-        dataset_seed=p.dataset_seed,
+    source_original_train, source_original_val, source_original_test = get_episodic_dataloaders(
+        nodes=p.desired_classes_source,
+        days=p.source_domains,
+        num_examples_per_day_per_node=p.num_examples_per_class_per_domain_source,
         iterator_seed=p.seed,
-        train_k_factor=p.train_k_factor,
-        val_k_factor=p.val_k_factor,
-        test_k_factor=p.test_k_factor,
-        normalize=p.normalize_target
+        n_shot=p.n_shot,
+        n_way=p.n_way,
+        n_query=p.n_query,
+        train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
+        normalize_type=p.normalize_source,
+    )
+
+    target_original_train, target_original_val, target_original_test = get_episodic_dataloaders(
+        nodes=p.desired_classes_target,
+        days=p.target_domains,
+        num_examples_per_day_per_node=p.num_examples_per_class_per_domain_target,
+        iterator_seed=p.seed,
+        n_shot=p.n_shot,
+        n_way=p.n_way,
+        n_query=p.n_query,
+        train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
+        normalize_type=p.normalize_target,
     )
 
     # For CNN We only use X and Y. And we only train on the source.

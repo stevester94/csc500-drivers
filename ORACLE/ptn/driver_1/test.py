@@ -187,8 +187,8 @@ class Test_Datasets(unittest.TestCase):
             params.n_way                  = len(params.desired_classes_source)
 
 
-            classes_as_ids_source = [serial_number_to_id(y) for y in params.desired_classes_source]
-            classes_as_ids_target = [serial_number_to_id(y) for y in params.desired_classes_target]
+            classes_as_ids_source = [params.desired_classes_source.index(y) for y in params.desired_classes_source]
+            classes_as_ids_target = [params.desired_classes_target.index(y) for y in params.desired_classes_target]
 
             p = parse_and_validate_parameters(params)
             datasets = prep_datasets(p)
