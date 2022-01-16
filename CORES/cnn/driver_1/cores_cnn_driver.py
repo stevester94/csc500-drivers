@@ -50,11 +50,11 @@ base_parameters["desired_classes"] = ALL_NODES_MINIMUM_1000_EXAMPLES
 base_parameters["source_domains"] = [1]
 base_parameters["target_domains"] = [2,3,4,5]
 
-base_parameters["num_examples_per_class_per_domain"]=100
+base_parameters["num_examples_per_class_per_domain"]=1000
 
 base_parameters["batch_size"]=128
 
-base_parameters["n_epoch"] = 10
+base_parameters["n_epoch"] = 50
 
 base_parameters["patience"] = 10
 

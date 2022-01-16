@@ -70,7 +70,7 @@ def do_report(experiment_json_path, loss_curve_path, show_only=False):
             ["Learning Rate", experiment["parameters"]["lr"]],
             ["Num Epochs", experiment["parameters"]["n_epoch"]],
             ["patience", experiment["parameters"]["patience"]],
-            ["(seed, dataset seed)", (experiment["parameters"]["seed"], experiment["parameters"]["dataset_seed"])],
+            ["seed", experiment["parameters"]["seed"]],
             ["Source Domains", str(experiment["parameters"]["source_domains"])],
             ["Target Domains", str(experiment["parameters"]["target_domains"])],
 
