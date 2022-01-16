@@ -12,7 +12,7 @@ from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.lazy_map import Lazy_Map
 from steves_utils.sequence_aggregator import Sequence_Aggregator
 
-import steves_utils.ORACLE.torch_utils as ORACLE_Torch
+from steves_utils.simple_datasets.ORACLE.dataset_accessor import get_datasets
 from steves_utils.ORACLE.utils_v2 import (
     ALL_DISTANCES_FEET,
     ALL_SERIAL_NUMBERS,
@@ -49,11 +49,7 @@ base_parameters["desired_classes"] = ALL_SERIAL_NUMBERS
 base_parameters["source_domains"] = [50,32,8]
 base_parameters["target_domains"] = list(set(ALL_DISTANCES_FEET) - set([50,32,8]))
 
-base_parameters["window_stride"]=50
-base_parameters["window_length"]=512
-base_parameters["desired_runs"]=[1]
 base_parameters["num_examples_per_class_per_domain"]=1000
-base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["criteria_for_best"] = "source"
 base_parameters["normalize_source"] = False
@@ -149,52 +145,64 @@ def build_datasets(p:EasyDict)->EasyDict:
     }
     """
 
-    def class_to_pseudo_class(p:EasyDict, original_class):
-        pseudo_class = p.desired_classes.index(original_class)
-        return pseudo_class
 
-    source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
-                    desired_serial_numbers=p.desired_classes,
-                    desired_distances=p.source_domains,
-                    desired_runs=p.desired_runs,
-                    window_length=p.window_length,
-                    window_stride=p.window_stride,
-                    num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
-                    seed=p.dataset_seed,  
-                    max_cache_size=p.max_cache_items,
-                    transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
-                    prime_cache=False,
-                    normalize=p.normalize_source
-    )
-
-    target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
-                    desired_serial_numbers=p.desired_classes,
-                    desired_distances=p.target_domains,
-                    desired_runs=p.desired_runs,
-                    window_length=p.window_length,
-                    window_stride=p.window_stride,
-                    num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
-                    seed=p.dataset_seed,  
-                    max_cache_size=p.max_cache_items,
-                    transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
-                    prime_cache=False,
-                    normalize=p.normalize_target
+    source_original_train, source_original_val, source_original_test = get_datasets(
+        serial_numbers=p.desired_classes,
+        distances=p.source_domains,
+        num_examples_per_distance_per_serial=p.num_examples_per_class_per_domain,
+        normalize_type=p.normalize_source,
     )
 
 
-    # Split our source and target datasets into train val and test
-    source_train_len = floor(len(source_ds)*0.7)
-    source_val_len   = floor(len(source_ds)*0.15)
-    source_test_len  = len(source_ds) - source_train_len - source_val_len
-    source_original_train, source_original_val, source_original_test = torch.utils.data.random_split(
-        source_ds, [source_train_len, source_val_len, source_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
+    target_original_train, target_original_val, target_original_test = get_datasets(
+        serial_numbers=p.desired_classes,
+        distances=p.target_domains,
+        num_examples_per_distance_per_serial=p.num_examples_per_class_per_domain,
+        normalize_type=p.normalize_source,
+    )
+
+    # source_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
+    #                 desired_serial_numbers=p.desired_classes,
+    #                 desired_distances=p.source_domains,
+    #                 desired_runs=p.desired_runs,
+    #                 window_length=p.window_length,
+    #                 window_stride=p.window_stride,
+    #                 num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
+    #                 seed=p.dataset_seed,  
+    #                 max_cache_size=p.max_cache_items,
+    #                 transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
+    #                 prime_cache=False,
+    #                 normalize=p.normalize_source
+    # )
+
+    # target_ds = ORACLE_Torch.ORACLE_Torch_Dataset(
+    #                 desired_serial_numbers=p.desired_classes,
+    #                 desired_distances=p.target_domains,
+    #                 desired_runs=p.desired_runs,
+    #                 window_length=p.window_length,
+    #                 window_stride=p.window_stride,
+    #                 num_examples_per_device_per_distance_per_run=p.num_examples_per_class_per_domain,
+    #                 seed=p.dataset_seed,  
+    #                 max_cache_size=p.max_cache_items,
+    #                 transform_func=lambda x, params=p: (x["iq"], class_to_pseudo_class(params, x["serial_number"]), x["distance_ft"]),
+    #                 prime_cache=False,
+    #                 normalize=p.normalize_target
+    # )
 
 
-    target_train_len = floor(len(target_ds)*0.7)
-    target_val_len   = floor(len(target_ds)*0.15)
-    target_test_len  = len(target_ds) - target_train_len - target_val_len
-    target_original_train, target_original_val, target_original_test = torch.utils.data.random_split(
-        target_ds, [target_train_len, target_val_len, target_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
+    # # Split our source and target datasets into train val and test
+    # source_train_len = floor(len(source_ds)*0.7)
+    # source_val_len   = floor(len(source_ds)*0.15)
+    # source_test_len  = len(source_ds) - source_train_len - source_val_len
+    # source_original_train, source_original_val, source_original_test = torch.utils.data.random_split(
+    #     source_ds, [source_train_len, source_val_len, source_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
+
+
+    # target_train_len = floor(len(target_ds)*0.7)
+    # target_val_len   = floor(len(target_ds)*0.15)
+    # target_test_len  = len(target_ds) - target_train_len - target_val_len
+    # target_original_train, target_original_val, target_original_test = torch.utils.data.random_split(
+    #     target_ds, [target_train_len, target_val_len, target_test_len], generator=torch.Generator().manual_seed(p.dataset_seed))
 
     # For CNN We only use X and Y. And we only train on the source.
     # Properly form the data using a transform lambda and Lazy_Map. Finally wrap them in a dataloader

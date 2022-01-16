@@ -41,11 +41,7 @@ base_parameters["desired_classes"] = ALL_SERIAL_NUMBERS
 base_parameters["source_domains"] = [50,32,8]
 base_parameters["target_domains"] = list(set(ALL_DISTANCES_FEET) - set([50,32,8]))
 
-base_parameters["window_stride"]=50
-base_parameters["window_length"]=512
-base_parameters["desired_runs"]=[1]
 base_parameters["num_examples_per_class_per_domain"]=100
-base_parameters["max_cache_items"] = 4.5e6
 
 base_parameters["criteria_for_best"] = "source"
 base_parameters["normalize_source"] = False
