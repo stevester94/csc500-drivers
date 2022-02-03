@@ -13,7 +13,7 @@ from steves_utils.iterable_aggregator import Iterable_Aggregator
 from steves_utils.ptn_train_eval_test_jig import  PTN_Train_Eval_Test_Jig
 from steves_utils.torch_sequential_builder import build_sequential
 from steves_utils.torch_utils import get_dataset_metrics, ptn_confusion_by_domain_over_dataloader
-from steves_utils.utils_v2 import per_domain_accuracy_from_confusion
+from steves_utils.utils_v2 import (per_domain_accuracy_from_confusion, get_datasets_base_path)
 from steves_utils.PTN.utils import independent_accuracy_assesment
 
 from steves_utils.simple_datasets.ORACLE.episodic_dataset_accessor import get_episodic_dataloaders
@@ -83,6 +83,8 @@ base_parameters["x_net"] =     [
 
     {"class": "Linear", "kargs": {"in_features": 256, "out_features": 256}},
 ]
+
+base_parameters["dataset_path"] = os.path.join( get_datasets_base_path(), "oracle.stratified_ds.2022A.pkl" )
 
 # Parameters relevant to results
 # These parameters will basically never need to change
@@ -224,6 +226,7 @@ def build_datasets(p:EasyDict)->EasyDict:
         n_query=p.n_query,
         train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
         normalize_type=p.normalize_source,
+        pickle_path=p.dataset_path,
     )
 
     target_original_train, target_original_val, target_original_test = get_episodic_dataloaders(
@@ -236,6 +239,7 @@ def build_datasets(p:EasyDict)->EasyDict:
         n_query=p.n_query,
         train_val_test_k_factors=(p.train_k_factor,p.val_k_factor,p.test_k_factor),
         normalize_type=p.normalize_target,
+        pickle_path=p.dataset_path,
     )
 
 
@@ -382,7 +386,12 @@ if __name__ == "__main__":
 
     start_time_secs = time.time()
 
+    if "dataset_path" not in parameters.keys():
+        parameters["dataset_path"] = os.path.join( get_datasets_base_path(), "oracle.stratified_ds.2022A.pkl" )
+
     p = parse_and_validate_parameters(parameters)
+
+    print(f"Using dataset {p.dataset_path}")
 
     if not os.path.exists(p.RESULTS_DIR):
         os.mkdir(p.RESULTS_DIR)
